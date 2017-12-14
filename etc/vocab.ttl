@@ -1,0 +1,220 @@
+# An ontology for a dataset of system logs and related information to support 
+# failure analysis for large HPC clusters
+
+# empty prefix for "this ontology" - replace the URL eventually:
+@prefix : <http://example.com/owl/hpc-logset/> .
+
+# the dataset definition is derived from the Data Catalog Vocabulary, a single
+# dataset is a subtype of dcat:Dataset and can be managed as part of a 
+# dcat:Catalog and published/accessed as a dcat:Distribution
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+
+# basic vocabularies used here:
+# rdf and rdfs between them define essential types and relationships:
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+# owl adds a more constrained formal description logic for classes:
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+# dublin core terms, form base of dcat vocab:
+@prefix dct: <http://purl.org/dc/terms/> .
+# For provenance information: the publisher of a LogSet is a foaf:Agent (most
+# likely an foaf:Organization), and the LogSet is comprised of logfiles for one
+# or more systems, described in terms of organizational Assets (adms:Asset):
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+
+
+:LogSet
+    a owl:Class;
+    rdfs:subClassOf dcat:Dataset;
+    rdfs:comment '''A LogSet is a DataSet spanning a specific era (eg a Cray 
+                    boot session) and containing:
+                     - an rdf/turtle description of the LogSet
+                     - a collection of files that each map to a LogSeries 
+                       (the time span might be a slice of each file, and/or
+                       multiple files may each provide part of the timespan) 
+                     - an optional collection of annotations 
+                 ''' ;
+    # A LogSet defines one timespan, for which dcat:temporal is a suitable
+    # field. It is formatted as a DCMI period 
+    # (http://dublincore.org/documents/dcmi-period/), ie having a start and an 
+    # end in W3C-DTF format (https://www.w3.org/TR/NOTE-datetime), eg:
+    # dct:temporal "start=2016-01-01T12:00:00+08:00 end=2016-01-05T14:45:00+08:00"
+    # I *think* this is the correct syntax to specify that:
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dct:temporal ;
+        owl:cardinality 1 ;
+    ] ;
+    :hasLogs :LogSeries
+    :hasAnnotations :Annotation
+    # A LogSet should include *some* provenance information, though we won't 
+    # necessarily enforce this. Recommanded minimum is:
+    # dct:title         a rdfs:Literal
+    # dct:description   a rdfs:Literal
+    # dct:publisher     a foaf:Organization
+    # dct:contactPoint  a vcard:Kind
+    
+    .
+
+:hasLogs
+    a owl:DatatypeProperty ;
+    rdfs:comment "List of LogSeries in a LogSet" ;
+    rdfs:domain :LogSet ;
+    rdfs:range :LogSeries ;
+    .
+
+:hasAnnotations
+    a owl:DatatypeProperty ;
+    rdfs:comment "List of Annotations files in a LogSet" ;
+    rdfs:domain :LogSet ;
+    rdfs:range :LogSeries ;
+    .
+
+:LogSeries
+    a owl:Class;
+    rdfs:comment '''A LogSeries describes a "type" of logfile.
+                    The LogSet might have multiple logfiles for a given series,
+                    eg due to logrotate. As a concrete example, a LogSet for a
+                    boot session on a Cray XC includes console logs, with the
+                    logs for each day in a separate file: console-20170906,
+                    console-20170907, and so on. The console LogSeries will 
+                    describe how to identify console logfiles and aggregate 
+                    them into a single series. It should also describe how 
+                    records are delimited and how to identify the timestamp for
+                    each record
+                    Note that some logs are decomposed by file-per-type-of-info
+                    .. not sure how to best handle that 
+                 ''' ;
+    :filePattern rdfs:Literal ;
+    :logFormat rdfs:Literal ;
+    :recordFormat rdfs:Literal ;
+    # Implementation notes:
+    # Some LogSeries are spread over multiple files by type-of-information,
+    # so make LogSeries capable of being comprised of other LogSeries
+    # (Note: some of these might be too difficult to do declaratively, might
+    # need to have some tag that can be used to identify a function that eg
+    # returns the next record, or a specific record, or the timestamp of a
+    # record)
+    .
+
+:filePattern
+    a owl:DatatypeProperty ;
+    rdfs:comment '''Python-style regex for filepaths, optionally including 
+                    the following named groups (the actual format is defined
+                    by the regex itself):
+                      <date>  datestamp 
+                      <time>  timestamp 
+                      <comp>  component identifier
+                    Eg: console-(?P<date>20\d\d[01]\d[0-3]\d)
+                 ''' ;
+    rdfs:range rdfs:Literal ;
+    .
+
+:logFormat
+    # Cray logfiles come in a variety of formats, any tool attempting to query
+    # a LogSet will need to know how to handle each type of file (for example, 
+    # some are simple timestamped-line-per-entry, others are a timestamped 
+    # multiline block, others have a file per timestamp and contain a table,
+    # and some have no obvious structure at all)
+    # Furthermore, a timeStampedLog might use a different format per record,
+    # especially with regard to the timestamp format and location. 
+    # It is possible that this ought to be a class, we will see...
+    a owl:DatatypeProperty
+    rdfs:comment "Indicates how the file/LogSeries is formatted, therefore how to process it"
+    rdfs:domain :LogSeries
+    rdfs:range rdfs:Literal
+    owl:oneOf(:timeStampedLog, :filePerTimepoint, :unstructured, :sqlite3, :binary)
+    .
+
+
+
+# I'm surprised a concrete File isn't a thing already defined in some 
+# vocabulary, but I haven't found one so will define it here. This is how
+# we refer to logfiles, annotation files etc comprising a LogSet
+:path
+    a rdfs:Literal
+
+:File
+    a owl:Class
+    rdfs:comment '''A file containing data that is part of this LogSet.
+                    The data might be logs, annotations or the RDF description
+                    of the LogSet
+                 ''' ;
+    dct:format dct:FileFormat
+    .
+
+
+
+# OWL spec makes this ambiguous: does a subclass inherit properties?
+# try this:
+# rdflib parses them both just fine .. I guess I need some sort of owl validator
+# to report on whether the description is valid/complete
+:testlogset
+    a :LogSet ;
+    dct:title "here is a title" ;
+    rdfs:Literal "some random literal"
+    .
+
+:testlogset2
+    a :LogSet ;
+    rdfs:Literal "some literal"
+    .
+
+#
+##:LogFormat
+##    a owl:Class
+##    rdfs:subClassOf rdfs:Literal
+##    #TODO is this syntax correct?
+##    owl:OneOf ("TimestampedLog", "FilePerTimepoint", "Unstructured", "Binary")
+##    .
+#
+#:format
+#
+## individuals (literals) indicating different formats:
+#:timeStampedLog   a :format .
+#:filePerTimepoint a :format .
+#:unstructured     a :format .
+#:sqlite3          a :format .
+#:binary           a :format .
+#
+## -------
+#
+# some example things within a dataset:
+#
+# BEGIN=p0-<timestamp> file. Empty file, marks start of boot session
+#
+# bootinfo.p0-20170906t151820. seems to have output of commands, delimited by 
+#                              start-of-line timestamps. Some output lines are 
+#                              also prefixed by timestamp, but not all
+# bootrecord/boothistory       timestamped log  
+#           /boot_record       blocks of text, each coresponding to a log entry
+#           /node_table        some sort of table
+# bootrecorder-<datestamp>     timestamped log
+# compute/<nodename>-<datestamp> timestamped log
+# config.p0-<timestamp>        unstructured text
+# console-<datestamp>          timestamped log
+# console.pid.p0               unstructured text
+# console.p0-20170906t151820   empty file
+# console.cmd.p0               unstructured text
+# consumer-<datestamp>         timestamped blocks of text               
+# craylog.p0-20170906t151820   multiple sections, including tables, logs and unstructured text
+# craylog.p0-<timestamp>.save* appears to be manually captured state of main craylog
+#                              at a couple of points in time. Not part of each dataset
+# dumpd-<datestamp>            timestamped log
+# dws/dwmd-<datestamp>         timestamped log
+# hwerrlog.p0-20170906t151820            binary data
+# hwerrlog.p0-20170906t151820.<number>   binary data
+# hwinv.p0-20170906t151820     xml 
+# messages-<datestamp>         timestamped log
+# nersc.aries_lcb/<cluster>_aries_lcb_status.<timestamp>.xz table
+# netwatch-<datestamp>         table with timestamp columns
+# nlrd-<datestamp>             timestamped log
+# etc
+#
+# will also need to have annotations db, and event log (eg outages), and perhaps job info
+# (maybe a db, or log, or both)
+#
+# so file types will need to reflect this.
+# maybe each thing has a label, and a rule for the filename pattern
+
