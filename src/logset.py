@@ -68,20 +68,18 @@ class TestArgParsing(unittest.TestCase):
         capturedOutput = io.StringIO()
         sys.stdout = capturedOutput   # redirect to capture
         try:
-            parse_args('-h'.split())
+            args = parse_args('-h'.split())
         except SystemExit:
             pass # we're testing, so don't abort completely!
         sys.stdout = sys.__stdout__   # reset redirect
         # beyond eyeballing it, I don't know how to meaningfully
         # check that the captured output is sensible, so this is
         # mostly a placeholder:
-        logging.info('\nCaptured:\n'+capturedOutput.getvalue())
+        logging.debug('\nCaptured:\n'+capturedOutput.getvalue())
         assert True
 
 
 if __name__ == '__main__':
-    # for now:
-    #logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
     args = parse_args()
     logging.debug(commands.commands())
@@ -97,5 +95,5 @@ if __name__ == '__main__':
         #TODO handle other global/common args
         #if args.vocab:
 
-        commands.commands()[args.command]().run()
+        commands.commands()[args.command]().run(args)
 

@@ -11,7 +11,7 @@ Usage Model
 
 The initial/essential use cases are:
 
-Create a bare-minimum logset from a bunch of logfiles
+Create a bare-minimum logset from a bunch of logfiles or other source
   :ID: _`UC1`
   :Preconditions: 
     - we can read a valid ontology
@@ -23,6 +23,7 @@ Create a bare-minimum logset from a bunch of logfiles
   :Notes: 
     - if an index.ttl already exists at the target location, the tool should
       warn/guide the user about replacing or updating it
+    - "or other source": eg a curl command or sql query
 
 Report on a described dataset
   :ID: _`UC2`
@@ -54,6 +55,7 @@ Add annotations to a logset
 
 Extract a timeslice from a logset
   :ID: _`UC5`
+
 
   
 Initial Domain Model

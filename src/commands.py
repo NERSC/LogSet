@@ -2,8 +2,9 @@
 """ parse, call and test logset commands """
 
 import unittest
-
+import logging
 import argparse
+
 from abc import ABC, abstractmethod
 class Command(ABC):
     parser = None
@@ -14,8 +15,13 @@ class Command(ABC):
                                       help=cls.__doc__.split('\n',1)[0])
 
     @abstractmethod
-    def run(self):
-        pass
+    def run(self, args=None):
+#        if args is None:
+#            logging.debug("hello?")
+#            self.args = self.parser.parse_args()
+#            logging.debug("hello?")
+#        else:
+            self.args = args
 
 
 _commands= None
@@ -39,8 +45,11 @@ def commands():
 
 class Test(Command):
     """ Run unit tests """
-    def run(self):
-        testsuite = unittest.TestLoader().discover('.',pattern='*.py')
+    def run(self, args=None):
+        super().run()
+        import os
+        root = os.path.realpath(__file__).rsplit('/',1)[0]
+        testsuite = unittest.TestLoader().discover(root,pattern='*.py')
         unittest.TextTestRunner(verbosity=1).run(testsuite)
 
 
@@ -55,11 +64,40 @@ class TestHelpCommand(unittest.TestCase):
 
 class Create(Command):
     """ Create (with user guidance) an index.ttl for a set of log files """
-    pass
+    def __init__(self):
+        self.parser.add_argument('path', help="location to search for possible logfiles",
+                            default='./')
+
+    def run(self, args=None):
+        super().run()
+        
 
 class TestCreateCommand(unittest.TestCase):
+    def setUp(self):
+        self.cmd = Create()
+
+    def test_parse_create_args(self):
+        dummy_arg = '/path/to/some/logfiles'
+        self.parser.parse_args(dummy_arg.split())
+
+
+        # capturing stdout from help, (thanks stackoverflow)
+        import io
+        capturedOutput = io.StringIO()
+        sys.stdout = capturedOutput   # redirect to capture
+        try:
+            parse_args('-h'.split())
+        except SystemExit:
+            pass # we're testing, so don't abort completely!
+        sys.stdout = sys.__stdout__   # reset redirect
+        # beyond eyeballing it, I don't know how to meaningfully
+        # check that the captured output is sensible, so this is
+        # mostly a placeholder:
+        logging.debug('\nCaptured:\n'+capturedOutput.getvalue())
+        assert True
+    
     def test_something(self):
-        assert False, "TODO create tests for Create command"
+        assert False, "TODO create more tests for Create command"
 
 
 class Info(Command):
