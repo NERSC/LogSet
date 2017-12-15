@@ -23,122 +23,140 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
 
-# FIXME:
-#
-# my ontology has a fundamental misunderstanding here, it is trying to be 
-# object-oriented. In OWL, properties are not inherited, and because a class 
-# has certain properties does not imply that instances will have those 
-# properties. Rather, a vocabulary describes a few classes (maybe) and a
-# bunch of properties. instances described using this vocabulary can use these
-# properties to describe relationships betweeneach other.
-#
-# to enforce certain proerties, a class can be a subclass of certain 
-# restrictions (but this is not enforced by rdf, only by owl, and requires 
-# an owl-aware reasoner to enforce)
-#
-# So for what I want to do - which is to describe logfiles in such a way that 
-# tools can collect related logfiles together, find corresponding records or
-# slices in those files, link annotations to corresponding points in those 
-# logfiles, and other things I haven't thought of - 
-
-the contents of a package of 
-# logfiles in such a way that a tool can decide what class to instantiate to
-# correctly manipulate each one, 
-# 
-
-
 :LogSet
-    a owl:Class;
-    rdfs:subClassOf dcat:Dataset;
-    rdfs:comment ''' A LogSet is a DataSet spanning a specific era (eg a Cray 
-                     boot session) and containing:
-                      - an rdf/turtle description of the LogSet
-                      - a collection of files that each map to a LogSeries 
-                        (the time span might be a slice of each file, and/or
-                        multiple files may each provide part of the timespan) 
-                      - an optional collection of annotations 
-                 ''' ;
-    # A LogSet defines one timespan, for which dcat:temporal is a suitable
-    # field. It is formatted as a DCMI period 
-    # (http://dublincore.org/documents/dcmi-period/), ie having a start and an 
-    # end in W3C-DTF format (https://www.w3.org/TR/NOTE-datetime), eg:
-    # dct:temporal "start=2016-01-01T12:00:00+08:00 end=2016-01-05T14:45:00+08:00"
-    # I *think* this is the correct syntax to specify that:
-    # (the key thing here is that in owl, inheritance isn't about properties, 
-    # it is about membership of a set
-
-    #isSubClass does not imply that a 
-    # member of this class has a superset of the properties of a member of the 
-    # parent class. Rather, properties belong to individual objects 
-    # thing has properties that the parent class
+    a owl:Class ;
+    rdfs:subClassOf dcat:Dataset ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
-        owl:onProperty dct:temporal ;
+        owl:onProperty dct:temporal ; 
+          # eg:"start=2016-01-01T12:00:00+08:00 end=2016-01-05T14:45:00+08:00"
         owl:cardinality 1 ;
     ] ;
-    :hasLog :LogSeries ;       # cardinality: many
-    :hasLogFile :LogFile ;     # cardinality: many. Each LogFile is associated with
-                               # a LogSeries, within the LogFile description
-    :hasAnnotationFile :File ; # cardinality: many
-    # A LogSet should include *some* provenance information, though we won't 
-    # necessarily enforce this. Recommanded minimum is:
-    # dct:title         a rdfs:Literal
-    # dct:description   a rdfs:Literal
-    # dct:publisher     a foaf:Organization
-    # dct:contactPoint  a vcard:Kind
-    .
-
-:hasLog
-    a owl:ObjectProperty ;
-    rdfs:comment ''' a LogSeries included in this LogSet. The individual 
-                     LogFiles link to the relevant LogSeries.
-                     If the LogFiles comprising this LogSeries doesn't cover 
-                     the full timespan of this LogSet then the LogSet can have 
-                     multiple hasLog properties for the same LogSeries, each 
-                     with a different dct:temporal property describing the 
-                     partial timespan
+    rdfs:comment ''' A LogSet is a DataSet spanning a specific timeframe (eg a 
+                     Cray boot session). It is recommended but not enforced 
+                     that a LogSet instance should have certain properties 
+                     describing its provenance:   
+                     # dct:title         a rdfs:Literal
+                     # dct:description   a rdfs:Literal
+                     # dct:publisher     a foaf:Organization
+                     # dct:contactPoint  a vcard:Kind
                  ''' ;
-    rdfs:domain :LogSet ;
-    rdfs:range :LogSeries ;
-    .
-
-:hasLogfile
-    a owl:ObjectProperty ;
-    rdfs:comment ''' Links an actual file (by location) to the LogSet. This 
-                     might be a found file matching the LogSet pattern, or an
-                     explicitly-added file not matching the pattern, or in a
-                     packed LogSet a file made by eg concatenating the daily
-                     files for a LogSeries
-                 ''' ;
-    rdfs:domain :LogSet ;
-    rdfs:range :LogFile ;
-    .
-
-:hasAnnotationFile
-    a owl:ObjectProperty ;
-    rdfs:comment "List of Annotations files in a LogSet" ;
-    rdfs:domain :LogSet ;
-    rdfs:range :File ;
     .
 
 :LogSeries
     a owl:Class;
-    rdfs:comment ''' A LogSeries describes a "type" of logfile.
-                     The LogSet might have multiple logfiles for a given series,
-                     eg due to logrotate. As a concrete example, a LogSet for a
-                     boot session on a Cray XC includes console logs, with the
-                     logs for each day in a separate file: console-20170906,
-                     console-20170907, and so on. The console LogSeries will 
-                     describe how to identify console logfiles and aggregate 
-                     them into a single series. It should also describe how 
-                     records are delimited and how to identify the timestamp for
-                     each record
+    rdfs:comment ''' A "type" of logfile, eg a console or outage log. Can be 
+                     used by tools to indicate how to handle a log. Must have
+                     a property indicating the format
                  ''' ;
-    # FIXME some logs are decomposed by file-per-type-of-info
-    # .. not sure how to best handle that yet
-    :filePattern rdfs:Literal ;
-    :logFormat rdfs:Literal ;
-    :recordFormat rdfs:Literal ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :logFormat ;
+        owl:cardinality 1 ;
+    ] ;
+    .
+
+:DataFormat
+    a owl:class ;
+    rdfs:comment ''' An entity representing how log data is organized, in order 
+                     to help tools decide how to handle a give log.  
+                     For example, most logs are timestamped-line-per-entry but
+                     some are a timestamped multiline block, others have a file
+                     per timestamp and contain a table, others hove no obvious 
+                     structure at all. 
+                 ''' ;
+    .
+
+:timeStampedLog   a :DataFormat .
+:filePerTimepoint a :DataFormat .
+:unstructured     a :DataFormat .
+:sqlite3          a :DataFormat .
+:binary           a :DataFormat .
+ 
+:logFormat
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment ''' An entity indicating how a LogSeries is formatted, from 
+                     which tools can decide how to process it.
+                     For example, most logs are timestamped-line-per-entry but
+                     some are a timestamped multiline block, others have a file
+                     per timestamp and contain a table, others hove no obvious 
+                     structure at all. 
+                 ''' ;
+    rdfs:domain :LogSeries ;
+    rdfs:range :DataFormat ;
+    owl:oneOf(:timeStampedLog :filePerTimepoint :unstructured :sqlite3 :binary) ;
+    .
+
+:RecordFormat
+    a owl:class ;
+    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
+                    therefore how to process it. Especially, how to identify
+                    the beginning and end of a record, and how to read the 
+                    timestamp associated with a record
+                 ''' ;
+    .
+
+:recordFormat
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
+                    therefore how to process it. Especially, how to identify
+                    the beginning and end of a record, and how to read the 
+                    timestamp associated with a record
+                 ''' ;
+    rdfs:domain :LogSeries ;
+    rdfs:range :RecordFormat ;
+    .
+
+
+:DataSource
+    a owl:class ;
+    # required properties:
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dcat:mediaType ; # eg "application/json" or "text/plain"
+        owl:cardinality 1 ;
+    ] ;
+    rdfs:comment ''' general accessor for log data, eg a File or database or web 
+                     service
+                 ''' ;
+    .
+
+:File
+    a owl:class ;
+    rdfs:subClassOf :DataSource ; 
+    # required properties:
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :path ; # eg "/abs/path/to/file" or "../rel/path/to/file"
+        owl:cardinality 1 ;
+    ] ;
+    .
+
+:path
+    a owl:DatatypeProperty ;
+    rdfs:domain :File ;
+    rdfs:range rdfs:Literal ;
+    .
+
+:hasLogData
+    a owl:ObjectProperty ;
+    rdfs:comment "Links log data (eg a log file) to a LogSet" ;
+    rdfs:domain :LogSet ;
+    rdfs:range :DataSource ;
+    .
+
+:isLogOf
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment "Links log data (eg a log file) to a LogSeries" ;
+    rdfs:domain :DataSource ;
+    rdfs:range :LogSeries ;
+    .
+
+:hasAnnotations
+    a owl:ObjectProperty ;
+    rdfs:comment "Links annotation data to a LogSet" ;
+    rdfs:domain :LogSet ;
+    rdfs:range :DataSource ;
     .
 
 :filePattern
@@ -149,130 +167,18 @@ the contents of a package of
                        <date>  datestamp 
                        <time>  timestamp 
                        <comp>  component identifier
-                     Eg: console-(?P<date>20\d\d[01]\d[0-3]\d)
+                     Eg: "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+                     (note in this eg the backslashes are doubled to make the
+                     string a legal RDF literal)
                  ''' ;
     rdfs:range rdfs:Literal ;
     .
 
 
-:logFormat
-    # FIXME: is this the right wat to handle a property that should only 
-    # have certain predefined values?
-    a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:comment ''' A label indicating how the LogSeries is formatted, from 
-                     which tools can decide how to process it.
-                     For example, most logs are timestamped-line-per-entry but
-                     some are a timestamped multiline block, others have a file
-                     per timestamp and contain a table, others hove no obvious 
-                     structure at all. 
-                 ''' ;
-    rdfs:domain :LogSeries ;
-    rdfs:range :format ;
-    owl:oneOf(:timeStampedLog, :filePerTimepoint, :unstructured, :sqlite3, :binary) ;
-    .
-# see https://stackoverflow.com/questions/18785499/modelling-owl-datatype-property-restrictions-with-a-list-of-values/18786480#18786480
 
-:format
-    a owl:class ;
-    #owl:subClassOf rdfs:Literal ;
-    .
-
-:timeStampedLog   a :format .
-:filePerTimepoint a :format .
-:unstructured     a :format .
-:sqlite3          a :format .
-:binary           a :format .
-# --
+# =========
 
 
-:recordFormat
-    a owl:DatatypeProperty
-    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
-                    therefore how to process it. Especially, how to identify
-                    the beginning and end of a record, and how to read the 
-                    timestamp associated with a record
-                 '''
-    rdfs:domain :LogSeries
-    rdfs:range rdfs:Literal # FIXME for now - implementation still to be worked out
-    .
-
-
-:series
-    a owl:ObjectProperty ;
-    rdfs:comment "Indicates the LogSeries describing this LogFile" ;
-    rdfs:domain :LogFile ;
-    rdfs:range :LogSeries ;
-    .
-
-# I'm surprised a concrete File isn't a thing already defined in some 
-# vocabulary, but I haven't found one so will define it here. This is how
-# we refer to logfiles, annotation files etc comprising a LogSet
-:path
-    a owl:DatatypeProperty
-    rdfs:domain :File
-    rdfs:range rdfs:Literal
-
-:File
-    a owl:Class
-    rdfs:comment '''A file containing data that is part of this LogSet.
-                    The data might be logs, annotations or the RDF description
-                    of the LogSet
-                 ''' ;
-    :path rdfs:Literal ;
-    dcat:mediaType rdfs:Literal ;
-
-:LogFile
-    a owl:Class ;
-    owl:subClassOf :File ;
-    :series :LogSeries ;
-
-
-FileFormat
-dcat:mediaType "application/sparql-query" ;
-    dct:format dct:FileFormat ;
-    :path rdfs:Literal ;
-    .
-
-
-:AnnotationFile
-    a owl:Class;
-    rdfs:comment '''identifier A LogSeries describes a "type" of logfile.
-                 '''
-    .
-
-
-# OWL spec makes this ambiguous: does a subclass inherit properties?
-# try this:
-# rdflib parses them both just fine .. I guess I need some sort of owl validator
-# to report on whether the description is valid/complete
-:testlogset
-    a :LogSet ;
-    dct:title "here is a title" ;
-    rdfs:Literal "some random literal"
-    .
-
-:testlogset2
-    a :LogSet ;
-    rdfs:Literal "some literal"
-    .
-
-#
-##:LogFormat
-##    a owl:Class
-##    rdfs:subClassOf rdfs:Literal
-##    #TODO is this syntax correct?
-##    owl:OneOf ("TimestampedLog", "FilePerTimepoint", "Unstructured", "Binary")
-##    .
-#
-#:format
-#
-## individuals (literals) indicating different formats:
-#:timeStampedLog   a :format .
-#:filePerTimepoint a :format .
-#:unstructured     a :format .
-#:sqlite3          a :format .
-#:binary           a :format .
-#
 ## -------
 #
 # some example things within a dataset:
