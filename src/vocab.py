@@ -13,7 +13,8 @@ class TestVocab(unittest.TestCase):
 
     def test_can_parse_vocab(self):
         import os
-        vocab_path = os.getcwd() + '/samples/vocab.ttl'
+        root = os.path.realpath(__file__).rsplit('/',1)[0]
+        vocab_path = '{0:s}/../etc/vocab.ttl'.format(root)
         statements = self.vocab_graph.parse(vocab_path, format='turtle')
         
         import io
