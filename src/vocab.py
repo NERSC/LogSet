@@ -2,26 +2,34 @@
 """ read and write RDF/Turtle descriptions of things """
 
 import rdflib
-
 import logging
-#log = logging.getLogger(__name__)
+
+graph = None
+statements = None
+
+def parse_vocab(path=None):
+    if path is None:
+        import os
+        root = os.path.realpath(__file__).rsplit('/',1)[0]
+        path = '{0:s}/../etc/vocab.ttl'.format(root)
+    
+    global vocab, statements
+    vocab = rdflib.Graph()
+    statements = vocab.parse(path, format='turtle')
+
+
 import unittest
 class TestVocab(unittest.TestCase):
 
-    def setUp(self):
-        self.vocab_graph = rdflib.Graph()
-
     def test_can_parse_vocab(self):
-        import os
-        root = os.path.realpath(__file__).rsplit('/',1)[0]
-        vocab_path = '{0:s}/../etc/vocab.ttl'.format(root)
-        statements = self.vocab_graph.parse(vocab_path, format='turtle')
+        parse_vocab()
         
         import io
         import sys
         capturedOutput = io.StringIO()
         sys.stdout = capturedOutput   # redirect to capture
         
+        global statements
         print("\nvocab has {0:d} statements:".format(len(statements)))
         for s in statements:
             print(s)
