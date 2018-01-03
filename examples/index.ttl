@@ -1,0 +1,10 @@
+
+@prefix logset: <http://example.com/owl/hpc-logset/>
+@prefix entities: <http://portal.nersc.gov/project/m888/resilience/entities/#>
+
+:sample_data
+    a logset:LogSet ;
+    dct:description "a partial sample of cori log data for testing logset tools"  ;
+    dct:temporal "start=2017-09-06T15:18:20+08:00" ;
+    logset:system project:cori ;
+

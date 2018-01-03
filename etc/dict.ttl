@@ -1,0 +1,80 @@
+# A sample/starting data dictionary
+
+# this dictionary extends the namespace defined by logset:
+@prefix : <http://example.com/owl/hpc-logset/>
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+:timeStampedLog   a :LogFormat .
+:filePerTimepoint a :LogFormat .
+:unstructured     a :LogFormat .
+:sqlite3          a :LogFormat .
+:binary           a :LogFormat .
+:unknownLogFormat a :LogFormat .
+:KnownLogFormats a rdf:List 
+    :timeStampedLog, 
+    :filePerTimepoint,
+    :unstructured,
+    :sqlite3,
+    :binary;
+    .
+
+:unknownRecordFormat a :RecordFormat .
+:KnownRecordFormats a rdf:List 
+    :unknownRecordFormat ;
+    .
+
+
+:RegEx
+    a owl:class ;
+    rdfs:subClassOf rdfs:Literal ; 
+    .
+
+:filePattern
+    a owl:DatatypeProperty ;
+    rdfs:comment ''' Python-style regex for filepaths, optionally including 
+                     the following named groups (the actual format is defined
+                     by the regex itself):
+                       <date>   datestamp 
+                       <time>   timestamp 
+                       <comp>   component identifier
+                       <series> LogSeries identifier
+                     Eg: "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+                     or: "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+                     (note in this eg the backslashes are doubled to make the
+                     string a legal RDF literal)
+                     The logset tools use this to guess which LogSeries class 
+                     should read a file, and how it relates to other files for
+                     the same LogSeries 
+                 ''' ;
+    rdfs:range :RegEx ; # eg [ rdf:value "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)" ]
+    .
+
+
+# this is a common regex, can I generalize it? eg:
+_:name_date :RegEx 
+    rdf:value "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+
+:seriesPattern
+    a owl:ObjectProperty ; 
+    rdfs:domain :LogSeries ;
+    rdfs:range rdfs:Literal ;
+    rdfs:comment ''' a specific regex (or more sensibly, string) for the 
+                     "series" part of a _:name_date regex 
+                 '''
+    .
+
+:console_log
+    a :LogSeries ;
+    :logFormat logset:timeStampedLog ;
+    :filePattern _:name_date ;
+    :seriesPattern "console" ; 
+    .
+
+:consumer_log
+    a logset:LogSeries ;
+    logset:logFormat logset:timeStampedLog ;
+    :filePattern _:name_date ;
+    :seriesPattern "consumer" ; 
+    # record format is different to console_log though ..
+    .
+
