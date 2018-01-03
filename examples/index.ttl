@@ -1,10 +1,61 @@
 
-@prefix logset: <http://example.com/owl/hpc-logset/>
-@prefix entities: <http://portal.nersc.gov/project/m888/resilience/entities/#>
+@prefix logset: <http://example.com/owl/hpc-logset/> .
+@prefix entities: <http://portal.nersc.gov/project/m888/resilience/entities/#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
 
-:sample_data
+_:sample_data
     a logset:LogSet ;
     dct:description "a partial sample of cori log data for testing logset tools"  ;
     dct:temporal "start=2017-09-06T15:18:20+08:00" ;
-    logset:system project:cori ;
+    logset:system entities:cori ;
+    logset:hasLogData
+        _:console-20170906,
+        _:console-20170907,
+        _:consumer-20170906,
+        _:consumer-20170907 ;
+    .
+
+_:console-20170906
+    a logset:File ;
+    logset:path "p0-20170906t151820/console-20170906" ;
+    dcat:mediaType "text/plain" ;
+    logset:isLogOf logset:console_log ;
+    .
+    
+_:console-20170907
+    a logset:File ;
+    logset:path "p0-20170906t151820/console-20170907" ;
+    dcat:mediaType "text/plain" ;
+    logset:isLogOf logset:console_log ;
+    .
+    
+_:consumer-20170906
+    a logset:File ;
+    logset:path "p0-20170906t151820/consumer-20170906" ;
+    dcat:mediaType "text/plain" ;
+    logset:isLogOf logset:consumer_log ;
+    .
+    
+_:consumer-20170907
+    a logset:File ;
+    logset:path "p0-20170906t151820/consumer-20170907" ;
+    dcat:mediaType "text/plain" ;
+    logset:isLogOf logset:consumer_log ;
+    .
+
+
+#11:27 sleak@cori07:examples$ ll p0-20170906t151820/
+#total 12465
+#-rw-rw---- 1 sleak sleak    1599 Dec 21 14:46 console-20170906
+#-rw-rw---- 1 sleak sleak    2149 Dec 21 14:46 console-20170907
+#-rw-rw---- 1 sleak sleak   29152 Dec 21 14:53 consumer-20170906
+#-rw-rw---- 1 sleak sleak   47077 Dec 21 14:56 consumer-20170907
+#-rw-r----- 1 sleak sleak 6071843 Dec 21 14:58 craylog.p0-20170906t151820
+#-rw-rw---- 1 sleak sleak    2807 Dec 21 14:58 dumpd-20170906
+#drwxrwx--- 2 sleak sleak     512 Dec 21 15:03 dws
+#-rw-r----- 1 sleak sleak 6176800 Dec 21 14:59 hwerrlog.p0-20170906t151820
+#-rw-rw---- 1 sleak sleak  218839 Dec 21 14:59 messages-20170906
+#-rw-rw---- 1 sleak sleak  126622 Dec 21 14:59 messages-20170907
+#drwxrwx--- 2 sleak sleak   32768 Dec 21 15:06 nersc.aries_lcb
 

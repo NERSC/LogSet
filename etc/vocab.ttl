@@ -120,16 +120,20 @@
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment ''' An entity indicating how a LogSeries is formatted, from 
                      which tools can decide how to process it.
-                     For example, most logs are timestamped-line-per-entry but
-                     some are a timestamped multiline block, others have a file
-                     per timestamp and contain a table, others hove no obvious 
-                     structure at all. 
+                     For example, most logs are timestamped-line-per-entry (in
+                     a file or stream) but some are a timestamped multiline 
+                     block, others have a file per timestamp and contain a 
+                     table, others hove no obvious structure at all. If the 
+                     same log might be in a native file or as records in a 
+                     database, then the logFormat should provide enough 
+                     information for a tool to answer questions about it
                  ''' ;
-    rdfs:domain :LogSeries ;
+    #rdfs:domain :LogSeries ;
+    rdfs:domain :DataSource ;
     rdfs:range :LogFormat ;
 # this should be in the dict instead:
 #    owl:oneOf(:timeStampedLog :filePerTimepoint :unstructured :sqlite3 :binary) ;
-    owl:oneOf :knownLogFormats ; 
+#    owl:oneOf :knownLogFormats ; 
     .
 
 
@@ -151,9 +155,9 @@
                     FIXME: not sure how to implement/enforce the record 
                     delimters etc yet
                  ''' ;
-    rdfs:domain :LogSeries ;
+    #rdfs:domain :LogSeries ;
+    rdfs:domain :DataSource ;
     rdfs:range :RecordFormat ;
-    owl:oneOf :knownRecordFormats ; 
     .
 
 
@@ -189,6 +193,7 @@
 
 :path
     a owl:DatatypeProperty ;
+    rdfs:comment "relative to the index.ttl file"
     rdfs:domain :File ;
     rdfs:range rdfs:Literal ;
     .

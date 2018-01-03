@@ -33,47 +33,6 @@ import logging
 
 import sys
 import commands
-#def parse_args(cmdline=sys.argv[1:]):
-#    import argparse
-#    desc=__doc__.split('\n',1)[0]
-#    parser = argparse.ArgumentParser(description=desc)
-#
-#    # arguments common to all subcommands:
-#    parser.add_argument('--vocab', help="location of logset.ttl vocab file",
-#                        default='./')
-#    parser.add_argument('-l', '--loglevel', default='WARNING', metavar='LEVEL',
-#                        choices=['debug','d','info','i','warning','w',
-#                                 'error','e','critical','c'], 
-#                        help="noisiness of log output: "+
-#                             "(D)EBUG,(I)NFO,(W)ARNING,(E)RROR,(C)RITICAL",
-#                        type=str.lower)
-#
-#    # parsers for subcommands:
-#    subs = parser.add_subparsers(title="subcommands",metavar="COMMAND", dest='command')
-#    for name,cls in commands.commands().items():
-#        cls.setup_parser(subs)
-#
-#    if not cmdline:
-#         parser.print_help()
-#         return None 
-#
-#    return parser.parse_args(cmdline)
-#
-#
-#import unittest
-#class TestArgParsing(unittest.TestCase):
-#
-#    def test_basic_help(self):
-#        try:
-#            args = parse_args('-h'.split())
-#        except SystemExit:
-#            pass # we're testing, so don't abort completely!
-#        # beyond eyeballing it, I don't know how to meaningfully
-#        # check that the captured output is sensible, so this is
-#        # mostly a placeholder:
-#        logging.debug('\nCaptured:\n'+commands.capturedOutput.getvalue())
-#        assert True
-#
 
 if __name__ == '__main__':
 

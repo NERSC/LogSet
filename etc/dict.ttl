@@ -1,8 +1,10 @@
 # A sample/starting data dictionary
 
 # this dictionary extends the namespace defined by logset:
-@prefix : <http://example.com/owl/hpc-logset/>
+@prefix : <http://example.com/owl/hpc-logset/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 
 :timeStampedLog   a :LogFormat .
 :filePerTimepoint a :LogFormat .
@@ -10,18 +12,12 @@
 :sqlite3          a :LogFormat .
 :binary           a :LogFormat .
 :unknownLogFormat a :LogFormat .
-:KnownLogFormats a rdf:List 
-    :timeStampedLog, 
-    :filePerTimepoint,
-    :unstructured,
-    :sqlite3,
-    :binary;
-    .
 
 :unknownRecordFormat a :RecordFormat .
-:KnownRecordFormats a rdf:List 
-    :unknownRecordFormat ;
-    .
+
+# restrict :logFormat and :recordFormat to tigs we can handle
+:logFormat owl:oneOf(:timeStampedLog :filePerTimepoint :unstructured :sqlite3 :binary) .
+:recordFormat owl:oneOf(:unknownRecordFormat) .
 
 
 :RegEx
@@ -51,8 +47,10 @@
 
 
 # this is a common regex, can I generalize it? eg:
-_:name_date :RegEx 
-    rdf:value "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+_:name_date 
+    a :RegEx ;
+    rdf:value "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)" ;
+    .
 
 :seriesPattern
     a owl:ObjectProperty ; 
@@ -65,14 +63,14 @@ _:name_date :RegEx
 
 :console_log
     a :LogSeries ;
-    :logFormat logset:timeStampedLog ;
+    :logFormat :timeStampedLog ;
     :filePattern _:name_date ;
     :seriesPattern "console" ; 
     .
 
 :consumer_log
-    a logset:LogSeries ;
-    logset:logFormat logset:timeStampedLog ;
+    a :LogSeries ;
+    :logFormat :timeStampedLog ;
     :filePattern _:name_date ;
     :seriesPattern "consumer" ; 
     # record format is different to console_log though ..

@@ -58,6 +58,9 @@ Add annotations to a logset
 Extract a timeslice from a logset
   :ID: _`UC5`
 
+A further use case would be, given a catalog of LogSets, find relevant things 
+eg for a particular time period, or for a particular failure mode as described 
+in annotations
 
   
 Initial Domain Model
@@ -160,3 +163,25 @@ command --> vocab : < ontology_graph
 
 @enduml
 .. end
+
+
+**************
+Feature Design
+**************
+
+* Create a logset (`UC1`_)
+
+  Basic flow will be like:
+  - setup base graph (vocab + dict)
+  - for each file in filesystem (or tar) walk starting at provided path:
+    - attempt to add the file to the graph: (this might be its own use case)
+      - does filename correspond to a pattern in dict? (known series)
+        - yes: work out what is in this file, check if graph already contains 
+          this data, do something sensible if so, else add the subgraph
+        - no: either skip it or ask user what they want to do
+
+* Read, verify and report on a logset (`UC2`_)
+
+
+
+

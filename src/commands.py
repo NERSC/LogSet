@@ -54,8 +54,8 @@ def parse_args(cmdline: List[str]=sys.argv[1:], desc: str='') -> argparse.Namesp
     # arguments common to all subcommands:
     parser.add_argument('--vocab', help="path to vocab file", 
                         default='$LOGSET_ROOT/etc/vocab.ttl')
-    parser.add_argument('-d', '--dict', help="location of logset.ttl vocab file",
-                        default='./')
+    parser.add_argument('--dict', help="path to data dictionary",
+                        default='$LOGSET_ROOT/etc/dict.ttl')
     parser.add_argument('-l', '--loglevel', default='WARNING', metavar='LEVEL',
                         choices=['debug','d','info','i','warning','w',
                                  'error','e','critical','c'], 
