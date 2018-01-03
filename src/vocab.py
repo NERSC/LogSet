@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """ read and write RDF/Turtle descriptions of things """
 
+# system python 3 on Cori is broken so user will need to load a 
+# python module, which will be 3.6+ anyway, so we'll take advantage
+# of some of python's modern features:
+import sys
+if sys.version_info[0] < 3 or sys.version_info[1] < 5:
+    raise Exception("Requires python 3.5+")
+
 import rdflib
 import logging
 
@@ -24,23 +31,19 @@ class TestVocab(unittest.TestCase):
     def test_can_parse_vocab(self):
         parse_vocab()
         
-        import io
-        import sys
-        capturedOutput = io.StringIO()
-        sys.stdout = capturedOutput   # redirect to capture
-        
         global statements
-        print("\nvocab has {0:d} statements:".format(len(statements)))
-        for s in statements:
-            print(s)
-        print("\nregenerated turtle looks like:")
-        print(statements.serialize(format='n3').decode('ascii'))
-        print(statements.serialize(format='xml').decode('ascii'))
-
-        sys.stdout = sys.__stdout__   # reset redirect
-
-        # not having a convenient automatic test for "this is sane", 
-        # dump it to the log for now:
-        logging.debug('\nCaptured:\n'+capturedOutput.getvalue())
+        logging.debug("\nvocab has {0:d} statements:".format(len(statements)))
+        logging.debug("statements in native/internal format:")
+        # too much text, head-and-tail it:
+        def head_and_tail(lines):
+            logging.debug('\n'+'\n'.join(lines[:10]) + '\n ... \n' + '\n'.join(lines[-10:]))
+        head_and_tail([str(s) for s in statements])
+        logging.debug("\nregenerated turtle looks like:")
+        head_and_tail(statements.serialize(format='n3').decode('ascii').splitlines())
+        head_and_tail(statements.serialize(format='xml').decode('ascii').splitlines())
         assert True
 
+# for testing:
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.DEBUG) 
+    unittest.main()

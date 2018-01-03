@@ -14,7 +14,7 @@ The initial/essential use cases are:
 Create a bare-minimum logset from a bunch of logfiles or other source
   :ID: _`UC1`
   :Preconditions: 
-    - we can read a valid ontology
+    - we can read a valid ontology and dictionary
     - we have at least one logfile to describe
   :Postconditions:
     An `index.ttl` file is created in a target location describing each of the 
@@ -24,6 +24,8 @@ Create a bare-minimum logset from a bunch of logfiles or other source
     - if an index.ttl already exists at the target location, the tool should
       warn/guide the user about replacing or updating it
     - "or other source": eg a curl command or sql query
+    - we also need a "grows over time" data dictionary describing how to 
+      handle a particular type of file
 
 Report on a described dataset
   :ID: _`UC2`
