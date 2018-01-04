@@ -1,4 +1,6 @@
 # A sample/starting data dictionary
+# the dictionary is toolset/implementation-specific, ie it describes things 
+# that the toolset can handle, and has information used by the toolset
 
 # this dictionary extends the namespace defined by logset:
 @prefix : <http://example.com/owl/hpc-logset/> .
@@ -6,73 +8,101 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
-:timeStampedLog   a :LogFormat .
-:filePerTimepoint a :LogFormat .
-:unstructured     a :LogFormat .
-:sqlite3          a :LogFormat .
-:binary           a :LogFormat .
-:unknownLogFormat a :LogFormat .
 
-:unknownRecordFormat a :RecordFormat .
+:timeStampedLogFile   a :LogFormatType .
+#:filePerTimepoint     a :LogFormatType .
+#:unstructuredFile     a :LogFormatType .
+#:sqlite3              a :LogFormatType .
+#:binaryFile           a :LogFormatType .
+#:unknownLogFormat     a :LogFormatType .
 
-# restrict :logFormat and :recordFormat to tigs we can handle
-:logFormat owl:oneOf(:timeStampedLog :filePerTimepoint :unstructured :sqlite3 :binary) .
-:recordFormat owl:oneOf(:unknownRecordFormat) .
+#:logFormat owl:oneOf(:timeStampedLogFile :filePerTimepoint :unstructured :sqlite3 :binary) .
+:logFormat owl:oneOf(:timeStampedLogFile) .
 
-
-:RegEx
-    a owl:class ;
-    rdfs:subClassOf rdfs:Literal ; 
-    .
-
-:filePattern
-    a owl:DatatypeProperty ;
-    rdfs:comment ''' Python-style regex for filepaths, optionally including 
-                     the following named groups (the actual format is defined
-                     by the regex itself):
-                       <date>   datestamp 
-                       <time>   timestamp 
-                       <comp>   component identifier
-                       <series> LogSeries identifier
-                     Eg: "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
-                     or: "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
-                     (note in this eg the backslashes are doubled to make the
-                     string a legal RDF literal)
-                     The logset tools use this to guess which LogSeries class 
-                     should read a file, and how it relates to other files for
-                     the same LogSeries 
-                 ''' ;
-    rdfs:range :RegEx ; # eg [ rdf:value "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)" ]
-    .
-
-
-# this is a common regex, can I generalize it? eg:
-_:name_date 
-    a :RegEx ;
-    rdf:value "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)" ;
-    .
-
-:seriesPattern
-    a owl:ObjectProperty ; 
-    rdfs:domain :LogSeries ;
-    rdfs:range rdfs:Literal ;
-    rdfs:comment ''' a specific regex (or more sensibly, string) for the 
-                     "series" part of a _:name_date regex 
-                 '''
-    .
-
-:console_log
+# a console logfile is timestamped-line-per-entry, generally named like 
+# "console-20170131" and looks like:
+#  2017-09-06T15:20:21.827169-07:00 corismw1 craylog: message type: console, connected to port: 5150
+#  2017-09-06T15:20:21.827236-07:00 corismw1 craylog: testing connectivity
+#  2017-09-06T15:20:22.075706-07:00 corismw1 starting
+#  2017-09-06T15:22:42.809249-07:00 c2-0c0s0n1 Wait4Boot: Blade Controller Boot Protocol version - 1
+#  2017-09-06T15:22:42.809276-07:00 c2-0c0s0n1 Wait4Boot: EXIT ---> PXE Boot
+:console_logfile
     a :LogSeries ;
-    :logFormat :timeStampedLog ;
-    :filePattern _:name_date ;
-    :seriesPattern "console" ; 
+    :logFormat :timeStampedLogFile ;
+    :logFormatInfo "filepattern=console-<dateYYYYMMDD>" ;
+    :logFormatInfo "filepattern=console" ;
+    :logFormatInfo "ts_word=0" ;
+    :logFormatInfo "part_word=1" ;
+    .
+#    :filePattern _:name_date ;
+#    :seriesPattern "console" ; 
+
+:messages_logfile
+    a :LogSeries ;
+    :logFormat :timeStampedLogFile ;
+    :logFormatInfo "filepattern=messages-<dateYYYYMMDD>" ;
+    :logFormatInfo "filepattern=messages" ;
+    :logFormatInfo "ts_word=1" ;
+    :logFormatInfo "part_word=2" ;
     .
 
-:consumer_log
-    a :LogSeries ;
-    :logFormat :timeStampedLog ;
-    :filePattern _:name_date ;
-    :seriesPattern "consumer" ; 
-    # record format is different to console_log though ..
-    .
+#:consumer_log
+#    a :LogSeries ;
+#    :logFormat :unstructuredFile ; # actually it has structure, but too complex initially
+#    :filePattern _:name_date ;
+#    :seriesPattern "consumer" ; 
+#    # record format is different to console_log though ..
+#    .
+
+#
+#:RegEx
+#    a owl:class ;
+#    rdfs:subClassOf rdfs:Literal ; 
+#    .
+#
+#:filePattern
+#    a owl:DatatypeProperty ;
+#    rdfs:comment ''' Python-style regex for filepaths, optionally including 
+#                     the following named groups (the actual format is defined
+#                     by the regex itself):
+#                       <date>   datestamp 
+#                       <time>   timestamp 
+#                       <comp>   component identifier
+#                       <series> LogSeries identifier
+#                     Eg: "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+#                     or: "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)"
+#                     (note in this eg the backslashes are doubled to make the
+#                     string a legal RDF literal)
+#                     The logset tools use this to guess which LogSeries class 
+#                     should read a file, and how it relates to other files for
+#                     the same LogSeries 
+#                 ''' ;
+#    rdfs:range :RegEx ; # eg [ rdf:value "console-(?P<date>20\\d\\d[01]\\d[0-3]\\d)" ]
+#    .
+#
+#
+## this is a common regex, can I generalize it? eg:
+## ugh, this will get ugly fast. maybe the regex should be in the implementation 
+## instead?
+#_:series_date 
+#    a :RegEx ;
+#    rdf:value "(?P<series>[a-z_]+)-(?P<date>20\\d\\d[01]\\d[0-3]\\d)" ;
+#    .
+#
+#_:system_series_time_xz
+#    a :RegEx ;
+#    rdf:value "(?P<system>[a-z]+)_(?P<series>[a-z_]+)\\.(?P<time>20\\d\\d[01]\\d[0-3]\\d[0-2]\\d[0-5]\\d[0-5]\\d)(?P<xz>\\.xz)?" ;
+#    .
+#
+#:seriesPattern
+#    a owl:ObjectProperty ; 
+#    rdfs:domain :LogSeries ;
+#    rdfs:range rdfs:Literal ;
+#    rdfs:comment ''' a specific regex (or more sensibly, string) for the 
+#                     "series" part of a _:name_date regex 
+#                 '''
+#    .
+
+#:unknownRecordFormat a :RecordFormat .
+#:recordFormat owl:oneOf(:unknownRecordFormat) .
 

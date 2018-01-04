@@ -20,29 +20,43 @@ _:console-20170906
     a logset:File ;
     logset:path "p0-20170906t151820/console-20170906" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:console_log ;
+    logset:isLogOf logset:console_logfile ;
     .
     
 _:console-20170907
     a logset:File ;
     logset:path "p0-20170906t151820/console-20170907" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:console_log ;
+    logset:isLogOf logset:console_logfile ;
     .
     
-_:consumer-20170906
+_:messages-20170906
     a logset:File ;
-    logset:path "p0-20170906t151820/consumer-20170906" ;
+    logset:path "p0-20170906t151820/messages-20170906" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:consumer_log ;
+    logset:isLogOf logset:messages_logfile ;
     .
     
-_:consumer-20170907
+_:messages-20170907
     a logset:File ;
-    logset:path "p0-20170906t151820/consumer-20170907" ;
+    logset:path "p0-20170906t151820/messages-20170907" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:consumer_log ;
+    logset:isLogOf logset:messages_logfile ;
     .
+    
+#_:consumer-20170906
+#    a logset:File ;
+#    logset:path "p0-20170906t151820/consumer-20170906" ;
+#    dcat:mediaType "text/plain" ;
+#    logset:isLogOf logset:consumer_logfile ;
+#    .
+#    
+#_:consumer-20170907
+#    a logset:File ;
+#    logset:path "p0-20170906t151820/consumer-20170907" ;
+#    dcat:mediaType "text/plain" ;
+#    logset:isLogOf logset:consumer_logfile ;
+#    .
 
 
 #11:27 sleak@cori07:examples$ ll p0-20170906t151820/

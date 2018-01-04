@@ -73,7 +73,6 @@
                      attributes will be described:
                      :hasLogData     a :DataSource 
                      :hasAnnotations a :DataSource
-
                  ''' ;
     .
 
@@ -90,6 +89,9 @@
                      used by tools to indicate how to handle a log. Must have
                      a property indicating the "canonical" format that tools
                      can assume on
+                     hmm: if we have multiple source for same type of log (eg 
+                     version in elasticsearch), then maybe we need an 
+                     "equivalentTo" property to link them?
                  ''' ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
@@ -98,7 +100,7 @@
     ] ;
     .
 
-:LogFormat
+:LogFormatType
     a owl:class ;
     rdfs:comment ''' An entity representing how log data is organized, in order 
                      to help tools decide how to handle a give log.  
@@ -106,16 +108,11 @@
                      some are a timestamped multiline block, others have a file
                      per timestamp and contain a table, others hove no obvious 
                      structure at all. 
+                     A LogFormatType is expected to correspond to a handler 
+                     class for logs in that format
                  ''' ;
     .
 
-# this should be in the dict instead: (and LogFormat not DataFormat)
-#:timeStampedLog   a :DataFormat .
-#:filePerTimepoint a :DataFormat .
-#:unstructured     a :DataFormat .
-#:sqlite3          a :DataFormat .
-#:binary           a :DataFormat .
- 
 :logFormat
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment ''' An entity indicating how a LogSeries is formatted, from 
@@ -123,41 +120,44 @@
                      For example, most logs are timestamped-line-per-entry (in
                      a file or stream) but some are a timestamped multiline 
                      block, others have a file per timestamp and contain a 
-                     table, others hove no obvious structure at all. If the 
+                     table, others hove no obvious structure at all. 
+                     problem: what if the 
                      same log might be in a native file or as records in a 
-                     database, then the logFormat should provide enough 
-                     information for a tool to answer questions about it
+                     database? then the logFormat should provide enough 
+                     information for a tool to answer questions about it?
+                     or does that count as a different logseries?
                  ''' ;
-    #rdfs:domain :LogSeries ;
-    rdfs:domain :DataSource ;
-    rdfs:range :LogFormat ;
-# this should be in the dict instead:
-#    owl:oneOf(:timeStampedLog :filePerTimepoint :unstructured :sqlite3 :binary) ;
-#    owl:oneOf :knownLogFormats ; 
+    rdfs:domain :LogSeries ;
+    rdfs:range :LogFormatType ;
+    #rdfs:domain :DataSource ;
     .
 
 
-:RecordFormat
-    a owl:class ;
-    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
-                    therefore how to process it. Especially, how to identify
-                    the beginning and end of a record, and how to read the 
-                    timestamp associated with a record
-                 ''' ;
-    .
+#:RecordFormat
+#    a owl:class ;
+#    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
+#                    therefore how to process it. Especially, how to identify
+#                    the beginning and end of a record, and how to read the 
+#                    timestamp associated with a record
+#                 ''' ;
+#    .
 
-:recordFormat
-    a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
-                    therefore how to process it. Especially, how to identify
-                    the beginning and end of a record, and how to read the 
-                    timestamp associated with a record
-                    FIXME: not sure how to implement/enforce the record 
-                    delimters etc yet
+:logFormatInfo
+    a owl:ObjectProperty ;
+    rdfs:comment ''' dictionary-like information that a LogFormatType handler 
+                     class can use to interpret a specific type of logfile. Each 
+                     logFormatInfo property should be a literal like 
+                     "key=value". Eg, a console_logfile and message_logfile are
+                     both timeStampedLogFile, but in the console log the 
+                     timestamp is the first "word" on each line, while in the 
+                     message log the timestamp is the second word on each line.
+                     So console_logfile can have recordInfoProperty "ts_word=0"
+                     (and "part_word=1" for system component) 
                  ''' ;
-    #rdfs:domain :LogSeries ;
-    rdfs:domain :DataSource ;
-    rdfs:range :RecordFormat ;
+    rdfs:domain :LogSeries ;
+    rdfs:range rdfs:Literal ;
+    #rdfs:domain :DataSource ;
+    #rdfs:range :RecordFormat ;
     .
 
 
@@ -193,7 +193,7 @@
 
 :path
     a owl:DatatypeProperty ;
-    rdfs:comment "relative to the index.ttl file"
+    rdfs:comment "path relative to the index.ttl file" ;
     rdfs:domain :File ;
     rdfs:range rdfs:Literal ;
     .
@@ -207,7 +207,7 @@
 
 :isLogOf
     a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:comment "Links log data (eg a log file) to a LogSeries" ;
+    rdfs:comment "Links a LogSeries to log data (eg a log file)" ;
     rdfs:domain :DataSource ;
     rdfs:range :LogSeries ;
     .
