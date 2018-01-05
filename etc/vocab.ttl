@@ -26,7 +26,9 @@
 #    are eg "what LogSets are available for system xyz?")
 
 # empty prefix for "this ontology" - replace the URL eventually:
-@prefix : <http://example.com/owl/hpc-logset/> .
+#@prefix : <http://example.com/owl/hpc-logset/> .
+# what if I use the github location to get a published version?
+@prefix : <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#>
 
 # the dataset definition is derived from the Data Catalog Vocabulary, a single
 # dataset is a subtype of dcat:Dataset and can be managed as part of a 
@@ -46,6 +48,12 @@
 # or more systems, described in terms of organizational Assets (adms:Asset):
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
+
+# do I need and equivalent of this?
+#<http://www.w3.org/ns/dcat>
+#    a owl:Ontology, voaf:Vocabulary;
+#    rdfs:label "The data catalog vocabulary"@en;
+#    .
 
 :LogSet
     a owl:Class ;

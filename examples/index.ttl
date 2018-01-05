@@ -1,5 +1,7 @@
 
-@prefix logset: <http://example.com/owl/hpc-logset/> .
+#@prefix logset: <http://example.com/owl/hpc-logset/> .
+@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#>
+@prefix dict: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#>
 @prefix entities: <http://portal.nersc.gov/project/m888/resilience/entities/#> .
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
@@ -20,28 +22,28 @@ _:console-20170906
     a logset:File ;
     logset:path "p0-20170906t151820/console-20170906" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:console_logfile ;
+    logset:isLogOf dict:console_logfile ;
     .
     
 _:console-20170907
     a logset:File ;
     logset:path "p0-20170906t151820/console-20170907" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:console_logfile ;
+    logset:isLogOf dict:console_logfile ;
     .
     
 _:messages-20170906
     a logset:File ;
     logset:path "p0-20170906t151820/messages-20170906" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:messages_logfile ;
+    logset:isLogOf dict:messages_logfile ;
     .
     
 _:messages-20170907
     a logset:File ;
     logset:path "p0-20170906t151820/messages-20170907" ;
     dcat:mediaType "text/plain" ;
-    logset:isLogOf logset:messages_logfile ;
+    logset:isLogOf dict:messages_logfile ;
     .
     
 #_:consumer-20170906
