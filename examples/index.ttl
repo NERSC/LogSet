@@ -1,7 +1,7 @@
 
 #@prefix logset: <http://example.com/owl/hpc-logset/> .
-@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#>
-@prefix dict: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#>
+@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#> .
+@prefix dict: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#> .
 @prefix entities: <http://portal.nersc.gov/project/m888/resilience/entities/#> .
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .

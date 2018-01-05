@@ -28,7 +28,7 @@
 # empty prefix for "this ontology" - replace the URL eventually:
 #@prefix : <http://example.com/owl/hpc-logset/> .
 # what if I use the github location to get a published version?
-@prefix : <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#>
+@prefix : <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#> .
 
 # the dataset definition is derived from the Data Catalog Vocabulary, a single
 # dataset is a subtype of dcat:Dataset and can be managed as part of a 

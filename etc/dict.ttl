@@ -8,7 +8,7 @@
 @prefix : <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#> .
 
 # use the logset vocab instead of extending it:
-@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#>
+@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
