@@ -21,7 +21,7 @@
 #:unknownLogFormat     a :LogFormatType .
 
 #:logFormat owl:oneOf(:timeStampedLogFile :filePerTimepoint :unstructured :sqlite3 :binary) .
-logset :logFormat owl:oneOf(:timeStampedLogFile) .
+logset:logFormat owl:oneOf (:timeStampedLogFile) .
 
 # a console logfile is timestamped-line-per-entry, generally named like 
 # "console-20170131" and looks like:
