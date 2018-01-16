@@ -2,10 +2,36 @@
 # failure analysis for large HPC clusters
 
 # Ontology scope and competency questions:
+#  - purpose of this ontology is to allow logs relevant to some HPC system
+#    (primarily targetting Cray systems at DOE sites, but the idea is more
+#    generally valid). It should support publication of:
+#    1. a data dictionary - which describes "types" of log such that a tool 
+#       can read/make use of them (eg a console log for a cray XC with CNL6 
+#       such as NERSC Edison)
+#    2. an entity catalog, identifying/describing systems and components and 
+#       how they affect each other (eg edison scratch affects edison, so does 
+#       the NGF shared filesystem, so does the cooling system in the room 
+#       housing them) 
+#    3. an index for a given LogSet. A LogSet is a set of related logs bundled 
+#       together with a common subject and common (perhaps aggregate) timespan.
+#       Each piece of a LogSet has a LogSeries (the "type" of log, ie how a 
+#       tool can handle it) and a dcat:Distribution 
+#       The index lists the parts of a LogSet as logset:ConcreteLogs, a 
+#       constrained type of dcat:Distribution, thus describing how to access 
+#       the file/stram/api/whatever.
+#       A query for logs relevant to some event might return data from 
+#       several LogSets, eg the SMW system logs, the Slurm history, the 
+#       filesystem logs, the MOTDs, and annotations of known events affecting 
+#       that system during the period of interest
+#    4. Annotations. A set of annotations might span multiple LogSets, and 
+#       a LogSet may be the subject of several annotation sets
+#       .. Annotations are a type of LogSeries really..
+
 #  - ontology describes log data for an HPC cluster (primarily target Cray
 #    systems at DOE sites, but ideally more generally valid). The LogSet itself
 #    is a dcat:DataSet, access to it is expected to be published as a 
 #    dcat:Distribution and by an organization described in terms of foaf:Agent.
+#  - 
 #    The system in question is described as an adms:Asset.
 #  - the specifics added by this ontology are intended to support tools that 
 #    collate and manipulate related sets of logs, for the purpose of 
@@ -55,6 +81,31 @@
 #    rdfs:label "The data catalog vocabulary"@en;
 #    .
 
+:subject 
+    a owl:ObjectProperty ;
+    # this is kind of an ugly way to do it, might want to rethink it (eg 
+    # by making a common base class for LogSet and LogSeries)
+    rdfs:domain [ owl:UnionOf (:LogSet :LogSeries) ] ;
+    rdfs:range adms:Asset ;
+    rdfs:comment ''' A LogSet has logs about a specific system or component,
+                     and a LogSeries might be about a specific component 
+                     within the system the LogSet documents 
+                 '''
+    .
+
+
+:affects
+    a owl:ObjectProperty ;
+    rdfs:comment ''' Components in an HPC center are not a strict hierarchy,
+                     eg a filesystem might be shared by multiple systems. 
+                     So we connect related systems and subsystems with an 
+                     "affects" relationship
+                 '''
+    rdfs:domain adms:Asset ;
+    rdfs:range adms:Asset ;
+    .
+
+
 :LogSet
     a owl:Class ;
     rdfs:subClassOf dcat:Dataset ;
@@ -66,10 +117,10 @@
     ] ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
-        owl:onProperty :system ; 
+        owl:onProperty :subject ; 
           # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison
     ] ;
-    rdfs:comment ''' A LogSet is a DataSet for a specific system, spanning a 
+    rdfs:comment ''' A LogSet is a Dataset for a specific system, spanning a 
                      specific timeframe (eg a Cray boot session on NERSC Cori). 
                      It is recommended but not enforced that a LogSet instance 
                      should have certain properties describing its provenance:   
@@ -77,19 +128,10 @@
                      # dct:description   a rdfs:Literal
                      # dct:publisher     a foaf:Organization
                      # dct:contactPoint  a vcard:Kind
-                     It is also recommended/expected that the following 
-                     attributes will be described:
-                     :hasLogData     a :DataSource 
-                     :hasAnnotations a :DataSource
+                     The actual files (or db queries etc) of the logs are 
+                     described as a :ConcreteLog, based on dcat:Distribution
                  ''' ;
     .
-
-:system 
-    a owl:ObjectProperty ;
-    rdfs:domain :LogSeries ;
-    rdfs:range adms:Asset ;
-    .
-
 
 :LogSeries
     a owl:Class;
@@ -109,7 +151,7 @@
     .
 
 :LogFormatType
-    a owl:class ;
+    a owl:Class ;
     rdfs:comment ''' An entity representing how log data is organized, in order 
                      to help tools decide how to handle a give log.  
                      For example, most logs are timestamped-line-per-entry but
@@ -169,63 +211,72 @@
     .
 
 
-:DataSource
-    a owl:class ;
+# this class might be extraneous, just subclass File or API or whatever 
+# directly from dcat:Distribution
+:ConcreteLog
+    a owl:Class ;
+    rdfs:subClassOf dcat:Distribution ;
     # required properties:
+    #rdfs:subClassOf [
+    #    # actually is this one strictly required? the isInstanceOf might cover it
+    #    rdf:type owl:Restriction ;
+    #    owl:onProperty dcat:mediaType ; # eg "application/json" or "text/plain"
+    #    owl:cardinality 1 ;
+    #] ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
-        owl:onProperty dcat:mediaType ; # eg "application/json" or "text/plain"
+        owl:onProperty :isInstanceOf ; # eg dict:console_logfile
         owl:cardinality 1 ;
     ] ;
-    rdfs:comment ''' general accessor for log data, eg a File or database or web 
-                     service. Used to identify a class to instantiate that can 
-                     interpret between how the datasource holds/exposes the data 
-                     and the canonical logFormat for the LogSeries 
-                     (eg, one DataSource might provide access to a file holding 
-                     a console log, another to a database holding it - but the 
-                     accessor for each should provide data in the format 
-                     described by the LogSeries)
+    rdfs:comment ''' storage of a specific log, eg a File or database or web 
+                     service, with knowledge of how to handle this type of 
+                     log in this format. Eg, the actual files in a p0 package
+                     are ConcreteLog objects 
                  ''' ;
     .
 
-:File
-    a owl:class ;
-    rdfs:subClassOf :DataSource ; 
-    # required properties:
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :path ; # eg "/abs/path/to/file" or "../rel/path/to/file"
-        owl:cardinality 1 ;
-    ] ;
-    .
+# this might also be extraneous, just use dcat:Distribution
+#:File
+#    a owl:Class ;
+#    rdfs:subClassOf :DataSource ; 
+#    # required properties:
+#    rdfs:subClassOf [
+#        rdf:type owl:Restriction ;
+#        owl:onProperty :path ; # eg "/abs/path/to/file" or "../rel/path/to/file"
+#        owl:cardinality 1 ;
+#    ] ;
+#    .
+#
+#:path
+#    a owl:DatatypeProperty ;
+#    rdfs:comment "path relative to the index.ttl file" ;
+#    rdfs:domain :File ;
+#    rdfs:range rdfs:Literal ;
+#    .
+#
+#:hasLogData
+#    a owl:ObjectProperty ;
+#    rdfs:comment "Links log data (eg a log file) to a LogSet" ;
+#    rdfs:domain :LogSet ;
+#    rdfs:range :DataSource ;
+#    .
 
-:path
-    a owl:DatatypeProperty ;
-    rdfs:comment "path relative to the index.ttl file" ;
-    rdfs:domain :File ;
-    rdfs:range rdfs:Literal ;
-    .
-
-:hasLogData
-    a owl:ObjectProperty ;
-    rdfs:comment "Links log data (eg a log file) to a LogSet" ;
-    rdfs:domain :LogSet ;
-    rdfs:range :DataSource ;
-    .
-
-:isLogOf
+#:isLogOf
+:isInstanceOf
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment "Links a LogSeries to log data (eg a log file)" ;
-    rdfs:domain :DataSource ;
+    #rdfs:domain :DataSource ;
+    rdfs:domain :ConcreteLog ;
     rdfs:range :LogSeries ;
     .
 
-:hasAnnotations
-    a owl:ObjectProperty ;
-    rdfs:comment "Links annotation data to a LogSet" ;
-    rdfs:domain :LogSet ;
-    rdfs:range :DataSource ;
-    .
+# I think it needs to be the other way around..
+#:hasAnnotations
+#    a owl:ObjectProperty ;
+#    rdfs:comment "Links annotation data to a LogSet" ;
+#    rdfs:domain :LogSet ;
+#    rdfs:range :DataSource ;
+#    .
 
 # =========
 

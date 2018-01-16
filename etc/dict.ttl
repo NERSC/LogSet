@@ -14,14 +14,22 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
 :timeStampedLogFile   a logset:LogFormatType .
+:sqlite3              a logset:LogFormatType .
+:unknownLogFormat     a logset:LogFormatType .
+
 #:filePerTimepoint     a :LogFormatType .
 #:unstructuredFile     a :LogFormatType .
-#:sqlite3              a :LogFormatType .
 #:binaryFile           a :LogFormatType .
-#:unknownLogFormat     a :LogFormatType .
 
 #:logFormat owl:oneOf(:timeStampedLogFile :filePerTimepoint :unstructured :sqlite3 :binary) .
 logset:logFormat owl:oneOf (:timeStampedLogFile) .
+
+# annotations are a kind of log of their own, and can be related to other LogSets
+:annotationDB
+    a logset:LogSeries ;
+    logset:logFormat :sqlite3 ;
+    # would the schema count as logFormatInfo ?
+    .
 
 # a console logfile is timestamped-line-per-entry, generally named like 
 # "console-20170131" and looks like:
