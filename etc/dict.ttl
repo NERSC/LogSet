@@ -2,12 +2,9 @@
 # the dictionary is toolset/implementation-specific, ie it describes things 
 # that the toolset can handle, and has information used by the toolset
 
-# this dictionary extends the namespace defined by logset:
-#@prefix : <http://example.com/owl/hpc-logset/> .
 # make the data dict its own namespace:
 @prefix : <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#> .
 
-# use the logset vocab instead of extending it:
 @prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -15,11 +12,10 @@
 
 :timeStampedLogFile   a logset:LogFormatType .
 :sqlite3              a logset:LogFormatType .
+:filePerTimepoint     a logset:LogFormatType .
+:unstructuredFile     a logset:LogFormatType .
+:binaryFile           a logset:LogFormatType .
 :unknownLogFormat     a logset:LogFormatType .
-
-#:filePerTimepoint     a :LogFormatType .
-#:unstructuredFile     a :LogFormatType .
-#:binaryFile           a :LogFormatType .
 
 #:logFormat owl:oneOf(:timeStampedLogFile :filePerTimepoint :unstructured :sqlite3 :binary) .
 logset:logFormat owl:oneOf (:timeStampedLogFile) .
@@ -46,8 +42,6 @@ logset:logFormat owl:oneOf (:timeStampedLogFile) .
     logset:logFormatInfo "ts_word=0" ;
     logset:logFormatInfo "part_word=1" ;
     .
-#    :filePattern _:name_date ;
-#    :seriesPattern "console" ; 
 
 :messages_logfile
     a logset:LogSeries ;
@@ -60,13 +54,14 @@ logset:logFormat owl:oneOf (:timeStampedLogFile) .
 
 #:consumer_log
 #    a :LogSeries ;
-#    :logFormat :unstructuredFile ; # actually it has structure, but too complex initially
-#    :filePattern _:name_date ;
-#    :seriesPattern "consumer" ; 
+#    logset:logFormat :unstructuredFile ; # actually it has structure, but too complex initially
+#    logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>" ;
 #    # record format is different to console_log though ..
 #    .
 
-#
+
+###### ---- old, removed #####
+
 #:RegEx
 #    a owl:class ;
 #    rdfs:subClassOf rdfs:Literal ; 

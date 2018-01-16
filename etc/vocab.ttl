@@ -90,7 +90,7 @@
     rdfs:comment ''' A LogSet has logs about a specific system or component,
                      and a LogSeries might be about a specific component 
                      within the system the LogSet documents 
-                 '''
+                 ''' ;
     .
 
 
@@ -100,7 +100,7 @@
                      eg a filesystem might be shared by multiple systems. 
                      So we connect related systems and subsystems with an 
                      "affects" relationship
-                 '''
+                 ''' ;
     rdfs:domain adms:Asset ;
     rdfs:range adms:Asset ;
     .
@@ -179,18 +179,8 @@
                  ''' ;
     rdfs:domain :LogSeries ;
     rdfs:range :LogFormatType ;
-    #rdfs:domain :DataSource ;
     .
 
-
-#:RecordFormat
-#    a owl:class ;
-#    rdfs:comment '''Indicates how a record within this LogSeries is formatted, 
-#                    therefore how to process it. Especially, how to identify
-#                    the beginning and end of a record, and how to read the 
-#                    timestamp associated with a record
-#                 ''' ;
-#    .
 
 :logFormatInfo
     a owl:ObjectProperty ;
@@ -206,13 +196,9 @@
                  ''' ;
     rdfs:domain :LogSeries ;
     rdfs:range rdfs:Literal ;
-    #rdfs:domain :DataSource ;
-    #rdfs:range :RecordFormat ;
     .
 
 
-# this class might be extraneous, just subclass File or API or whatever 
-# directly from dcat:Distribution
 :ConcreteLog
     a owl:Class ;
     rdfs:subClassOf dcat:Distribution ;
@@ -233,6 +219,15 @@
                      log in this format. Eg, the actual files in a p0 package
                      are ConcreteLog objects 
                  ''' ;
+    .
+
+
+:isInstanceOf
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment "Links a LogSeries to log data (eg a log file)" ;
+    #rdfs:domain :DataSource ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range :LogSeries ;
     .
 
 # this might also be extraneous, just use dcat:Distribution
@@ -260,15 +255,6 @@
 #    rdfs:domain :LogSet ;
 #    rdfs:range :DataSource ;
 #    .
-
-#:isLogOf
-:isInstanceOf
-    a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:comment "Links a LogSeries to log data (eg a log file)" ;
-    #rdfs:domain :DataSource ;
-    rdfs:domain :ConcreteLog ;
-    rdfs:range :LogSeries ;
-    .
 
 # I think it needs to be the other way around..
 #:hasAnnotations
