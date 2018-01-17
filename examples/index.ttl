@@ -5,10 +5,41 @@
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
 
+# possible addition to vocab:
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+## it turns out that dct:temporal is not directly comparable with xsd:date,
+## making it fairly useless for sparql queries. Following the pattern used by 
+## DDI Alliance and OpenGeoSpatial.org we define startDate and endDate properties
+## for a dct:PeriodOfTime and make an anonymous resource with these properties for 
+## each dct:temporal property 
+## (incidentally, DDI stands for "Data Documentation Initiative", which ironically, 
+## is not documented anywhere on their website)
+## note that for sparql queries to work, the dates *must* be include a timezone
+## and be marked as ^^xsd:dateTime, both in the index and in the query (or they 
+## get compared as literals). The time part (eg T12:00:00) is optional 
+#@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+#@prefix owl: <http://www.w3.org/2002/07/owl#> .
+#logset:startDate
+#    a owl:DatatypeProperty ;
+#    rdfs:domain dct:PeriodOfTime ;
+#    rdfs:range xsd:dateTime ;
+#    .
+#
+#logset:endDate
+#    a owl:DatatypeProperty ;
+#    rdfs:domain dct:PeriodOfTime;
+#    rdfs:range xsd:dateTime ;
+#    .
+
+
 _:sample_data
     a logset:LogSet ;
     dct:description "a partial sample of cori log data for testing logset tools"  ;
-    dct:temporal "start=2017-09-06T15:18:20+08:00 end=2017-09-07T00:01:31.068610-07:00" ;
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
+                 ] ;
     logset:subject entities:cori ;
     dcat:distribution
         _:console-20170906,
@@ -27,7 +58,13 @@ _:console-20170906
     dcat:downloadURL "p0-20170906t151820/console-20170906" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:console_logfile ; 
-    dct:temporal "start=2017-09-06T15:20:21.827169-07:00 end=2017-09-06T15:22:42.809617-07:00" ;
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-06T15:20:21.827169-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-06T15:22:42.809617-07:00"^^xsd:dateTime ;
+                 ] ;
+    #dct:temporal "start=2017-09-06T15:20:21.827169-07:00 end=2017-09-06T15:22:42.809617-07:00" ;
+    ## try this:
+    #dct:date "2017-09-06T15:20:21.827169-07:00"^^xsd:dateTime
     .
     
 _:console-20170907
@@ -35,7 +72,12 @@ _:console-20170907
     dcat:downloadURL "p0-20170906t151820/console-20170907" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:console_logfile ; 
-    dct:temporal "start=2017-09-07T00:00:37.627889-07:00 end=2017-09-07T00:01:31.068610-07:00" ;
+    #dct:temporal "start=2017-09-07T00:00:37.627889-07:00 end=2017-09-07T00:01:31.068610-07:00" ;
+    #dct:date "2017-09-07T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-07T00:00:37.627889-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T00:01:31.068610-07:00"^^xsd:dateTime ;
+                 ] ;
     .
     
 _:consumer-20170906
@@ -43,7 +85,12 @@ _:consumer-20170906
     dcat:downloadURL "p0-20170906t151820/consumer-20170906" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:consumer_logfile ; 
-    dct:temporal "start=2017-09-06T00:00:00" ;
+    # what if we have incomplete date info?
+    #dct:temporal "start=2017-09-06T00:00:00" ;
+    #dct:date "2017-09-06T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-06T00:00:00"^^xsd:dateTime ; 
+                 ] ;
     .
     
 _:consumer-20170907
@@ -51,7 +98,12 @@ _:consumer-20170907
     dcat:downloadURL "p0-20170906t151820/consumer-20170907" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:consumer_logfile ; 
-    dct:temporal "start=2017-09-07T00:00:00" ;
+    #dct:temporal "start=2017-09-07T00:00:00" ;
+    #dct:date "2017-09-07T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-07T00:00:00-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T23:59:59-07:00"^^xsd:dateTime ;
+                 ] ;
     .
     
 _:messages-20170906
@@ -59,7 +111,12 @@ _:messages-20170906
     dcat:downloadURL "p0-20170906t151820/messages-20170906" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:messages_logfile ; 
-    dct:temporal "start=2017-09-06T15:26:39.977558-07:00 end=2017-09-06T15:29:17.665618-07:00" ;
+    #dct:temporal "start=2017-09-06T15:26:39.977558-07:00 end=2017-09-06T15:29:17.665618-07:00" ;
+    #dct:date "2017-09-06T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-06T15:26:39.977558-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-06T15:29:17.665618-07:00"^^xsd:dateTime ;
+                 ] ;
     .
     
 _:messages-20170907
@@ -67,13 +124,20 @@ _:messages-20170907
     dcat:downloadURL "p0-20170906t151820/messages-20170907" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:messages_logfile ; 
-    dct:temporal "start=2017-09-07T00:00:01.008501-07:00 end=2017-09-07T00:00:01.135482-07:00" ;
+    #dct:temporal "start=2017-09-07T00:00:01.008501-07:00 end=2017-09-07T00:00:01.135482-07:00" ;
+    #dct:date "2017-09-07T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-07T00:00:01.008501-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T00:00:01.135482-07:00"^^xsd:dateTime ;
+                 ] ;
     .
     
+
+##########
 #_:consumer-20170906
 #    a logset:File ;
 #    logset:path "p0-20170906t151820/consumer-20170906" ;
-#    dcat:mediaType "text/plain" ;
+##    dcat:mediaType "text/plain" ;
 #    logset:isLogOf logset:consumer_logfile ;
 #    .
 #    

@@ -75,6 +75,9 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
 
+# to compare dateTime types:
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
 # do I need and equivalent of this?
 #<http://www.w3.org/ns/dcat>
 #    a owl:Ontology, voaf:Vocabulary;
@@ -103,6 +106,26 @@
                  ''' ;
     rdfs:domain adms:Asset ;
     rdfs:range adms:Asset ;
+    .
+
+
+# make dct:temporal amenable to sparql queries, following the pattern used by
+# DDI Alliance and OpenGeoSpatial.org of defining startDate and endDate properties
+# for a dct:PeriodOfTime, and in indexes and queries use a nested blank node for
+# the dct:PeriodOfTime itself.
+# Note that for sparql queries to work, the dates *must* be include a timezone
+# and be marked as ^^xsd:dateTime, both in the index and in the query (or they
+# get compared as literals). The time part (eg T12:00:00) is optional
+:startDate
+    a owl:DatatypeProperty ;
+    rdfs:domain dct:PeriodOfTime ;
+    rdfs:range xsd:dateTime ;
+    .
+
+:endDate
+    a owl:DatatypeProperty ;
+    rdfs:domain dct:PeriodOfTime;
+    rdfs:range xsd:dateTime ;
     .
 
 
@@ -183,7 +206,7 @@
 
 
 :logFormatInfo
-    a owl:ObjectProperty ;
+    a owl:DatatypeProperty ;
     rdfs:comment ''' dictionary-like information that a LogFormatType handler 
                      class can use to interpret a specific type of logfile. Each 
                      logFormatInfo property should be a literal like 
