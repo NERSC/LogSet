@@ -52,7 +52,7 @@ logset:logFormat owl:oneOf (:timeStampedLogFile :unstructuredFile) .
     logset:logFormatInfo "part_word=2" ;
     .
 
-:consumer_log
+:consumer_logfile
     a logset:LogSeries ;
     logset:logFormat :unstructuredFile ; # actually it has structure, but too complex initially
     logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>" ;
