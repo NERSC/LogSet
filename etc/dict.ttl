@@ -18,7 +18,7 @@
 :unknownLogFormat     a logset:LogFormatType .
 
 #:logFormat owl:oneOf(:timeStampedLogFile :filePerTimepoint :unstructured :sqlite3 :binary) .
-logset:logFormat owl:oneOf (:timeStampedLogFile) .
+logset:logFormat owl:oneOf (:timeStampedLogFile :unstructuredFile) .
 
 # annotations are a kind of log of their own, and can be related to other LogSets
 :annotationDB
