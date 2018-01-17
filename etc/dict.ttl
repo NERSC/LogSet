@@ -52,12 +52,12 @@ logset:logFormat owl:oneOf (:timeStampedLogFile) .
     logset:logFormatInfo "part_word=2" ;
     .
 
-#:consumer_log
-#    a :LogSeries ;
-#    logset:logFormat :unstructuredFile ; # actually it has structure, but too complex initially
-#    logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>" ;
-#    # record format is different to console_log though ..
-#    .
+:consumer_log
+    a logset:LogSeries ;
+    logset:logFormat :unstructuredFile ; # actually it has structure, but too complex initially
+    logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>" ;
+    logset:logFormatInfo "filepattern=consumer" ;
+    .
 
 
 ###### ---- old, removed #####
