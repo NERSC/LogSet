@@ -1,0 +1,59 @@
+# a dummy "other" index
+
+# external vocabularies - see vocab.ttl for comments about what each is and 
+# why we are using them:
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# (comment out base to use local cwd):
+@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
+@prefix logset: <etc/vocab#> .
+@prefix dict: <etc/dict#> .
+# what if a site has its own ddict? 
+
+# declare myself and set a prefix:
+# being remote we might have a base like:
+#@base  <http://portal.nersc.gov/project/m888/resilience/snl/>
+@prefix entities: <examples/snl-entities#> .
+@prefix : <examples/snl-index#> .
+:
+    a logset:LogSet ;
+    dct:description "an example of a remote dataset"  ;
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
+                 ] ;
+    logset:subject entities:mutrino ;
+    dcat:distribution
+        _:console-20170907,
+        _:messages-20170907 ;
+    .
+
+_:console-20170907
+    a logset:ConcreteLog ;
+    dcat:downloadURL "p0-20170906t151820/console-20170907" ;
+    dcat:mediaType "text/plain" ;
+    logset:isInstanceOf dict:console_logfile ; 
+    #dct:temporal "start=2017-09-07T00:00:37.627889-07:00 end=2017-09-07T00:01:31.068610-07:00" ;
+    #dct:date "2017-09-07T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-07T00:00:37.627889-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T00:01:31.068610-07:00"^^xsd:dateTime ;
+                 ] ;
+    .
+    
+    
+_:messages-20170907
+    a logset:ConcreteLog ;
+    dcat:downloadURL "p0-20170906t151820/messages-20170907" ;
+    dcat:mediaType "text/plain" ;
+    logset:isInstanceOf dict:messages_logfile ; 
+    #dct:temporal "start=2017-09-07T00:00:01.008501-07:00 end=2017-09-07T00:00:01.135482-07:00" ;
+    #dct:date "2017-09-07T15:20:21.827169-07:00"^^xsd:dateTime
+    dct:temporal [ a dct:PeriodOfTime ; 
+                  logset:startDate "2017-09-07T00:00:01.008501-07:00"^^xsd:dateTime ; 
+                  logset:endDate "2017-09-07T00:00:01.135482-07:00"^^xsd:dateTime ;
+                 ] ;
+    .
+

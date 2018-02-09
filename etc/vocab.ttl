@@ -51,11 +51,6 @@
 #    (some more general competency questions - more at the dcat:Dataset level
 #    are eg "what LogSets are available for system xyz?")
 
-# empty prefix for "this ontology" - replace the URL eventually:
-#@prefix : <http://example.com/owl/hpc-logset/> .
-# what if I use the github location to get a published version?
-@prefix : <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/vocab#> .
-
 # the dataset definition is derived from the Data Catalog Vocabulary, a single
 # dataset is a subtype of dcat:Dataset and can be managed as part of a 
 # dcat:Catalog and published/accessed as a dcat:Distribution
@@ -72,31 +67,67 @@
 # For provenance information: the publisher of a LogSet is a foaf:Agent (most
 # likely an foaf:Organization), and the LogSet is comprised of logfiles for one
 # or more systems, described in terms of organizational Assets (adms:Asset):
+# (note: adms is really intended to describe metadata assets, so by using it 
+# for physical assets we have overextended it a little - but I haven't seen a 
+# better alternative so it will do for now) ("web of things" at 
+# https://www.w3.org/ns/td/td.ttl might prove a better candidate if necessary)
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
-
 # to compare dateTime types:
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-# do I need and equivalent of this?
-#<http://www.w3.org/ns/dcat>
-#    a owl:Ontology, voaf:Vocabulary;
-#    rdfs:label "The data catalog vocabulary"@en;
-#    .
+# valid urls/bases/prefixes include:
+#@prefix dict: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#> .
+#@prefix dict: <file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/etc/dict#> .
+#@prefix dict: <../etc/dict#> .
+
+# declare myself and set a prefix:
+@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
+@prefix : <etc/vocab#> .
+:
+    a owl:Ontology ;
+    rdfs:label "the LogSet vocabulary" ;
+    .
+
+
+# to link different logsets into the same graph we extend dcat:Catalog in two ways:
+# 1. a list of assets that logsets in this catalog are about
+:assets
+    a owl:ObjectProperty ;
+    rdfs:comment ''' Assets that are the subjects of logsets in a catalog.
+                     Eg. nersc-catalog will have logs for edison and cori, while 
+                     snl-catalog will have logs for mutrino and trinity
+                 ''' ;
+    rdfs:domain dcat:Catalog ;
+    rdfs:range adms:Asset ;
+    .
+
+# 2. uris of zero or more other catalogs, thus enabling tools to spider around
+#    a global graph:
+:peers
+    a owl:ObjectProperty ;
+    rdfs:comment ''' URIs for other catalogs, analagous to html links forming 
+                     the www
+                 ''' ;
+    rdfs:domain dcat:Catalog ;
+    rdfs:range dcat:Catalog ;
+    .
 
 :subject 
     a owl:ObjectProperty ;
     # this is kind of an ugly way to do it, might want to rethink it (eg 
     # by making a common base class for LogSet and LogSeries)
     rdfs:domain [ owl:UnionOf (:LogSet :LogSeries) ] ;
+    #rdfs:domain dcat:Dataset ; # not so good, because LogSeries is not really a 
+                                # Dataset, no is it a LogSet (not temporal)
     rdfs:range adms:Asset ;
-    rdfs:comment ''' A LogSet has logs about a specific system or component,
-                     and a LogSeries might be about a specific component 
-                     within the system the LogSet documents 
+    rdfs:comment ''' The Asset whose state this LogSet or LogSeries describes.
+                     (eg a console-log might be for nersc edison)
                  ''' ;
     .
 
-
+# enable a dependence graph between assets so we can identify all logs 
+# affecting a thing, even if they affect it indirectly:
 :affects
     a owl:ObjectProperty ;
     rdfs:comment ''' Components in an HPC center are not a strict hierarchy,
@@ -141,7 +172,7 @@
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
         owl:onProperty :subject ; 
-          # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison
+          # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
     ] ;
     rdfs:comment ''' A LogSet is a Dataset for a specific system, spanning a 
                      specific timeframe (eg a Cray boot session on NERSC Cori). 
@@ -163,8 +194,8 @@
                      a property indicating the "canonical" format that tools
                      can assume on
                      hmm: if we have multiple source for same type of log (eg 
-                     version in elasticsearch), then maybe we need an 
-                     "equivalentTo" property to link them?
+                     a file whose records are also in elasticsearch), then maybe 
+                     we need an "equivalentTo" property to link them?
                  ''' ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
@@ -248,46 +279,9 @@
 :isInstanceOf
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment "Links a LogSeries to log data (eg a log file)" ;
-    #rdfs:domain :DataSource ;
     rdfs:domain :ConcreteLog ;
     rdfs:range :LogSeries ;
     .
-
-# this might also be extraneous, just use dcat:Distribution
-#:File
-#    a owl:Class ;
-#    rdfs:subClassOf :DataSource ; 
-#    # required properties:
-#    rdfs:subClassOf [
-#        rdf:type owl:Restriction ;
-#        owl:onProperty :path ; # eg "/abs/path/to/file" or "../rel/path/to/file"
-#        owl:cardinality 1 ;
-#    ] ;
-#    .
-#
-#:path
-#    a owl:DatatypeProperty ;
-#    rdfs:comment "path relative to the index.ttl file" ;
-#    rdfs:domain :File ;
-#    rdfs:range rdfs:Literal ;
-#    .
-#
-#:hasLogData
-#    a owl:ObjectProperty ;
-#    rdfs:comment "Links log data (eg a log file) to a LogSet" ;
-#    rdfs:domain :LogSet ;
-#    rdfs:range :DataSource ;
-#    .
-
-# I think it needs to be the other way around..
-#:hasAnnotations
-#    a owl:ObjectProperty ;
-#    rdfs:comment "Links annotation data to a LogSet" ;
-#    rdfs:domain :LogSet ;
-#    rdfs:range :DataSource ;
-#    .
-
-# =========
 
 
 ## -------

@@ -1,0 +1,31 @@
+# example of a "remote" (linked) catalog
+
+# external vocabularies - see vocab.ttl for comments about what each is and 
+# why we are using them:
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# (comment out base to use local cwd):
+@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
+@prefix logset: <etc/vocab#> .
+
+# declare myself and set a prefix:
+# being remote we might have a base like:
+#@base  <http://portal.nersc.gov/project/m888/resilience/snl/>
+@prefix entities: <examples/snl-entities#> .
+@prefix : <examples/snl-catalog#> .
+:
+    a dcat:Catalog ;
+    dct:title "Imaginary Catalog for SNL" ;
+    logset:assets
+        entities:mutrino ;
+    logset:peers
+        <nersc-catalog.ttl> ;
+    dcat:dataset 
+        <snl-index.ttl> ;
+        # this might be where aggregations are useful, we can point to a starting 
+        # point and things build over time
+    .
+
+
