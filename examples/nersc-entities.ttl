@@ -12,21 +12,21 @@
 
 :cori
     a adms:Asset ;
-    dct:title "cori"
+    dct:title "cori" ;
     dct:description "cori is the 12000-node Cray XC40 at NERSC" ;
     dcat:landingPage <http://www.nersc.gov/systems/cori/> ;
     .
 
 :edison
     a adms:Asset ;
-    dct:title "edison"
+    dct:title "edison" ;
     dct:description "edison is the 6000-node Cray XC30 at NERSC" ;
     dcat:landingPage <http://www.nersc.gov/systems/edison/> ;
     .
 
 :global_home
     a adms:Asset ;
-    dct:title "global home"
+    dct:title "global home" ;
     dct:description "the $HOME filesystem shared by all NERSC systems" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/global-home/> ;
     logset:affects 
@@ -36,7 +36,7 @@
 
 :escratch1
     a adms:Asset ;
-    dct:title "edison scratch1"
+    dct:title "edison scratch1" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
     logset:affects 
@@ -45,7 +45,7 @@
     
 :escratch3
     a adms:Asset ;
-    dct:title "edison scratch2"
+    dct:title "edison scratch2" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
     logset:affects 
@@ -54,7 +54,7 @@
     
 :escratch3
     a adms:Asset ;
-    dct:title "edison scratch3"
+    dct:title "edison scratch3" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
     logset:affects 
@@ -63,7 +63,7 @@
     
 :cscratch1
     a adms:Asset ;
-    dct:title "edison scratch1"
+    dct:title "edison scratch1" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
     logset:affects 
@@ -73,7 +73,7 @@
     
 :cori_slurm
     a adms:Asset ;
-    dct:title "cori slurm"
+    dct:title "cori slurm" ;
     dct:description "the batch system instance managing jobs on cori" ;
     dcat:landingPage <http://www.nersc.gov/users/computational-systems/cori/running-jobs/> ;
     logset:affects 
@@ -82,7 +82,7 @@
     
 :edison_slurm
     a adms:Asset ;
-    dct:title "edison slurm"
+    dct:title "edison slurm" ;
     dct:description "the batch system instance managing jobs on edison" ;
     dcat:landingPage <http://www.nersc.gov/users/computational-systems/edison/running-jobs/> ;
     logset:affects 

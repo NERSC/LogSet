@@ -6,6 +6,8 @@
 
 # (comment out base to use local cwd):
 @base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
+@prefix logset: <etc/vocab#> .
+@prefix dict: <etc/vocab#> .
 @prefix entities: <examples/nersc-entities#> .
 
 # declare myself and set a prefix:
