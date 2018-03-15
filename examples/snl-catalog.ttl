@@ -21,9 +21,9 @@
     logset:assets
         entities:mutrino ;
     logset:peers
-        <nersc-catalog.ttl> ;
+        <examples/nersc-catalog.ttl> ;
     dcat:dataset 
-        <snl-index.ttl> ;
+        <examples/snl-index.ttl> ;
         # this might be where aggregations are useful, we can point to a starting 
         # point and things build over time
     .

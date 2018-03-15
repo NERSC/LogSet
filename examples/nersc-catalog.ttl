@@ -17,9 +17,9 @@
     logset:assets
         entities:cori ;
     logset:peers
-        <snl-catalog.ttl> ;
+        <examples/snl-catalog.ttl> ;
     dcat:dataset 
-        <index.ttl> ;
+        <examples/index.ttl> ;
         # this might be where aggregations are useful, we can point to a starting 
         # point and things build over time
     .

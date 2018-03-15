@@ -101,6 +101,14 @@
     rdfs:domain dcat:Catalog ;
     rdfs:range adms:Asset ;
     .
+    # TODO I think we need a way to describe assets by pattern, for eg nodes 
+    # in Cori or links in the HSN where there are thousands of them (so we 
+    # don't want to document every one), but eg a job might be affected by 
+    # the nodes in it's node list, so having identified the nodelist we want 
+    # to fetch it's console logs, or other things relating to that node. 
+    # General approach might be to have "placeholder" assets that describe 
+    # the pattern, and concrete assets can be added to the graph as a need 
+    # for them is discovered
 
 # 2. uris of zero or more other catalogs, thus enabling tools to spider around
 #    a global graph:
