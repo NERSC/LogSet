@@ -32,7 +32,7 @@
 
 _:console-20170907
     a logset:ConcreteLog ;
-    dcat:downloadURL "p0-20170906t151820/console-20170907" ;
+    dcat:downloadURL "snl:p0-20170906t151820/console-20170907" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:console_logfile ; 
     #dct:temporal "start=2017-09-07T00:00:37.627889-07:00 end=2017-09-07T00:01:31.068610-07:00" ;
@@ -46,7 +46,7 @@ _:console-20170907
     
 _:messages-20170907
     a logset:ConcreteLog ;
-    dcat:downloadURL "p0-20170906t151820/messages-20170907" ;
+    dcat:downloadURL "snl:p0-20170906t151820/messages-20170907" ;
     dcat:mediaType "text/plain" ;
     logset:isInstanceOf dict:messages_logfile ; 
     #dct:temporal "start=2017-09-07T00:00:01.008501-07:00 end=2017-09-07T00:00:01.135482-07:00" ;
