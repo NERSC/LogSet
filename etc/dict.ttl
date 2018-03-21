@@ -8,7 +8,7 @@
 
 # declare myself and set a prefix:
 @base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
-@prefix logset: <etc/vocab#> .
+@prefix logset: <etc/logset#> .
 @prefix : <etc/dict#> .
 
 :timeStampedLogFile   a logset:LogFormatType .

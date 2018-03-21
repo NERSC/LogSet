@@ -1,4 +1,4 @@
-# external vocabularies - see vocab.ttl for comments about what each is and 
+# external vocabularies - see logset.ttl for comments about what each is and 
 # why we are using them:
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
@@ -7,7 +7,7 @@
 # (comment out base to use local cwd):
 @base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
 @prefix entities: <examples/nersc-entities#> .
-@prefix logset: <etc/vocab#> .
+@prefix logset: <etc/logset#> .
 
 # declare myself and set a prefix:
 @prefix : <examples/nersc-catalog#> .

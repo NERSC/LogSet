@@ -83,7 +83,7 @@
 
 # declare myself and set a prefix:
 @base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
-@prefix : <etc/vocab#> .
+@prefix : <etc/logset#> .
 :
     a owl:Ontology ;
     rdfs:label "the LogSet vocabulary" ;
