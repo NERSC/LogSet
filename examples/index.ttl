@@ -14,6 +14,7 @@
 @prefix : <examples/index#> .
 :
     a logset:LogSet ;
+    rdfs:label "nersc-logs-001" ;
     dct:description "a partial sample of cori log data for testing logset tools"  ;
     dct:temporal [ a dct:PeriodOfTime ; 
                   logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ; 

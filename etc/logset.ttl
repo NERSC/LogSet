@@ -109,6 +109,10 @@
     # General approach might be to have "placeholder" assets that describe 
     # the pattern, and concrete assets can be added to the graph as a need 
     # for them is discovered
+    # -- SPARQL can do regex queries, and Asset has properties adms:includedAsset
+    # and skos:altLabel, so we could give eg nodes or links an asset for the 
+    # "whole type" with an altLabel having the pattern (might count as abusing
+    # the adms vocabulary a bit)
 
 # 2. uris of zero or more other catalogs, thus enabling tools to spider around
 #    a global graph:
