@@ -3,13 +3,14 @@
 @prefix adms: <http://www.w3.org/ns/adms#> .
 
 # (comment out base to use local cwd):
-@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
-@prefix logset: <etc/logset#> .
+#@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
+@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#> .
 
 # declare myself and set a prefix:
 # being remote we might have a base like:
 #@base  <http://portal.nersc.gov/project/m888/resilience/snl/>
-@prefix : <examples/snl-entities#> .
+#@base <> .
+@prefix : <snl-entities#> .
 
 :mutrino
     a adms:Asset ;

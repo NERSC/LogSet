@@ -86,11 +86,12 @@
 @prefix : <etc/logset#> .
 :
     a owl:Ontology ;
-    rdfs:label "the LogSet vocabulary" ;
+    dct:title "the LogSet vocabulary" ;
+    rdfs:label "LogSet" ;
     .
 
 
-# to link different logsets into the same graph we extend dcat:Catalog in two ways:
+# to link different logsets into the same graph we extend dcat:Catalog in three ways:
 # 1. a list of assets that logsets in this catalog are about
 :assets
     a owl:ObjectProperty ;
@@ -114,7 +115,9 @@
     # "whole type" with an altLabel having the pattern (might count as abusing
     # the adms vocabulary a bit)
 
-# 2. uris of zero or more other catalogs, thus enabling tools to spider around
+# 2. a list of assetLists
+
+# 3. uris of zero or more other catalogs, thus enabling tools to spider around
 #    a global graph:
 :peers
     a owl:ObjectProperty ;
