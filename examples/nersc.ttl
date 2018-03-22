@@ -1,14 +1,21 @@
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+#@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#> .
+@prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
 
 # (comment out base to use local cwd):
 #@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
-@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#> .
-
-#@base <> .
 # declare myself and set a prefix:
-@prefix : <nersc-entities#> .
+@prefix : <nersc#> .
+
+:nersc
+    a foaf:Organization ;
+    foaf:name "NERSC" ;
+    foaf:page <http://www.nersc.gov/> ;
+    .
 
 
 :cori

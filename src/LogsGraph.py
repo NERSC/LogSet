@@ -34,23 +34,13 @@ def construct(*catalog_urls, spider=False):
     # the logset vocab definition and data dictionaries have a common,
     # well-known source of truth, arse them just once, the first time:
     unparsed = set([
-             'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#',
-             'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#'
+             'http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#',
+             'http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#'
+             #'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#',
+             #'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#'
                   ])
 
-    parsed = set([
-                # skip over common, known namespaces:
-                str(rdflib.namespace.RDF),
-                str(rdflib.namespace.RDFS),
-                str(rdflib.namespace.OWL),
-                str(rdflib.namespace.XSD),
-                str(rdflib.namespace.FOAF),
-                str(rdflib.namespace.SKOS),
-                str(rdflib.namespace.DOAP),
-                str(rdflib.namespace.DC),
-                str(rdflib.namespace.DCTERMS),
-                str(rdflib.namespace.VOID)
-                ])
+    parsed = set()
     logging.debug("parsed has: {}".format(parsed))
     
     return extend(*catalog_urls, spider=spider)
@@ -59,13 +49,10 @@ def construct(*catalog_urls, spider=False):
 def extend(*new_urls, spider=False):
     """ extend the graph with the currently-unparsed urls """
     global graph, parsed, unparsed
-    q_peers = '''SELECT ?uri WHERE 
-                     { ?cat a dcat:Catalog .
-                       ?cat logset:peers ?uri . }'''
+    q_remotes = ''' SELECT ?uri WHERE
+                    { ?cat a dcat:Catalog .
+                       ?cat rdfs:seeAlso ?uri . } '''
     q_logsets = '''SELECT ?uri WHERE 
-                     { ?cat a dcat:Catalog .
-                       ?cat dcat:dataset ?uri . }'''
-    q_entities = '''SELECT ?uri WHERE 
                      { ?cat a dcat:Catalog .
                        ?cat dcat:dataset ?uri . }'''
 
@@ -84,7 +71,7 @@ def extend(*new_urls, spider=False):
                 full_url = str(url)[:-1] + '.ttl' 
             else:
                 full_url = url
-            #logging.debug("looking for {}".format(full_url))
+            logging.debug("looking for {}".format(full_url))
             fmt = rdflib.util.guess_format(full_url)
             graph.parse(full_url, format=fmt)
             #logging.debug("parsed {}".format(url))
@@ -93,9 +80,9 @@ def extend(*new_urls, spider=False):
         logging.debug("parsed has: {}".format(parsed))
         unparsed = set()   
         if spider:
-            for peer in graph.query(q_peers):
-                url = str(peer['uri'])
-                #logging.debug("found peer {}".format(peer))
+            for remote in graph.query(q_remotes):
+                url = str(remote['uri'])
+                #logging.debug("found remote {}".format(remote))
                 #logging.debug(url)
                 if not url in parsed:
                     unparsed.add(url)
@@ -107,13 +94,6 @@ def extend(*new_urls, spider=False):
             if not url in parsed:
                 unparsed.add(url)
         logging.debug("unparsed has: {}".format(unparsed))
-        # find entity lists: 
-#        for entities in graph.query(q_entities):
-#            logging.debug("found entities {}".format(entities))
-#            logging.debug(url)
-#            url = entities['uri']
-#            if not url in parsed:
-#                unparsed.add(url)
     return graph
 
 

@@ -71,6 +71,7 @@
 # for physical assets we have overextended it a little - but I haven't seen a 
 # better alternative so it will do for now) ("web of things" at 
 # https://www.w3.org/ns/td/td.ttl might prove a better candidate if necessary)
+# (maybe not, a "thing" in WoT must be http accessible)
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
 # to compare dateTime types:
@@ -82,64 +83,139 @@
 #@prefix dict: <../etc/dict#> .
 
 # declare myself and set a prefix:
-@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
-@prefix : <etc/logset#> .
+#@base <https://raw.githubusercontent.com/NERSC/LogSet/master/etc> .
+@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets> .
+@prefix : <logset#> .
 :
     a owl:Ontology ;
     dct:title "the LogSet vocabulary" ;
     rdfs:label "LogSet" ;
     .
 
-
-# to link different logsets into the same graph we extend dcat:Catalog in three ways:
-# 1. a list of assets that logsets in this catalog are about
-:assets
-    a owl:ObjectProperty ;
-    rdfs:comment ''' Assets that are the subjects of logsets in a catalog.
-                     Eg. nersc-catalog will have logs for edison and cori, while 
-                     snl-catalog will have logs for mutrino and trinity
+# the classes in our vocabulary:
+:LogSet
+    a owl:Class ;
+    rdfs:subClassOf dcat:Dataset ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dct:temporal ; 
+          # dct:temporal is poorly defined, so following the example of DDI and
+          # others, use a blank node like:
+          # dct:temporal [ a dct:PeriodOfTime ;
+          #   logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ;
+          #   logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
+          #   ] ;
+        owl:cardinality 1 ;
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :subject ; 
+          # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
+    ] ;
+    rdfs:comment ''' A LogSet is a Dataset for a specific system, spanning a 
+                     specific timeframe (eg a Cray boot session on NERSC Cori). 
+                     It is recommended but not enforced that a LogSet instance 
+                     should have certain properties describing its provenance:   
+                     # dct:title         a rdfs:Literal
+                     # dct:description   a rdfs:Literal
+                     # dct:publisher     a foaf:Organization
+                     # dct:contactPoint  a vcard:Kind
+                     (publisher and contactPoint are especially useful when the
+                     actual log data is not directly accessible to people or 
+                     tools using the metadata, so that having identified that 
+                     data exists, they can contact someone to request access).
+                     The actual files (or db queries etc) of the logs are 
+                     described as a :ConcreteLog, based on dcat:Distribution.
+                     A LogSet is epected to be defined in its own index file
+                     and included in a dcat:Catalog
                  ''' ;
-    rdfs:domain dcat:Catalog ;
-    rdfs:range adms:Asset ;
     .
-    # TODO I think we need a way to describe assets by pattern, for eg nodes 
-    # in Cori or links in the HSN where there are thousands of them (so we 
-    # don't want to document every one), but eg a job might be affected by 
-    # the nodes in it's node list, so having identified the nodelist we want 
-    # to fetch it's console logs, or other things relating to that node. 
-    # General approach might be to have "placeholder" assets that describe 
-    # the pattern, and concrete assets can be added to the graph as a need 
-    # for them is discovered
-    # -- SPARQL can do regex queries, and Asset has properties adms:includedAsset
-    # and skos:altLabel, so we could give eg nodes or links an asset for the 
-    # "whole type" with an altLabel having the pattern (might count as abusing
-    # the adms vocabulary a bit)
 
-# 2. a list of assetLists
-
-# 3. uris of zero or more other catalogs, thus enabling tools to spider around
-#    a global graph:
-:peers
-    a owl:ObjectProperty ;
-    rdfs:comment ''' URIs for other catalogs, analagous to html links forming 
-                     the www
+:LogSeries
+    a owl:Class;
+    rdfs:comment ''' A "type" of logfile, eg a console or outage log. Might be
+                     specific to a type of system, or OS version, but common to
+                     systems of that type (eg Cray with CNL6). Can be used by
+                     tools to indicate how to handle a log. Must have a property
+                     indicating the "canonical" format that tools can assume on.
+                     Note: we may need to add an "equivalentTo" property for 
+                     LogSeries that can be in multiple places and formats, eg a
+                     text log on a server and an index in an ElasticSearch db.
+                     A LogSeries is expected to be defined in a data dictionary
                  ''' ;
-    rdfs:domain dcat:Catalog ;
-    rdfs:range dcat:Catalog ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :logFormat ;
+        owl:cardinality 1 ;
+    ] ;
     .
+
+:LogFormatType
+    a owl:Class ;
+    rdfs:comment ''' An entity representing how log data is organized, in order 
+                     to help tools decide how to handle a give log.  
+                     For example, most logs are timestamped-line-per-entry but
+                     some are a timestamped multiline block, others have a file
+                     per timestamp and contain a table, others hove no obvious 
+                     structure at all. 
+                     It is likely valuable for a LogFormatType to include a
+                     dcat:mediaType property, eg "text/plain" 
+                     A LogFormatType is expected to be defined in a data 
+                     dictionary and to correspond to a handler class for logs in
+                     that format
+                 ''' ;
+    .
+
+:ConcreteLog
+    a owl:Class ;
+    rdfs:subClassOf dcat:Distribution ;
+    # required properties:
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :isInstanceOf ; # eg dict:console_logfile
+        owl:cardinality 1 ;
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dct:temporal ; 
+        owl:cardinality 1 ;
+    ] ;
+    rdfs:comment ''' An actual, specific log, eg a File or database or web 
+                     service, with knowledge of how to handle this type of 
+                     log in this format. Eg, the actual files in a p0 package
+                     are ConcreteLog objects.
+                     Should have either a dcat:downloadURL or a dcat:accessURL.
+                     May have a logset:subject (assumed from LogSet if not) and
+                     a logset:specificSubjectLabel
+                 ''' ;
+    .
+
+
+# and the properties linking them:
 
 :subject 
     a owl:ObjectProperty ;
-    # this is kind of an ugly way to do it, might want to rethink it (eg 
-    # by making a common base class for LogSet and LogSeries)
-    rdfs:domain [ owl:UnionOf (:LogSet :LogSeries) ] ;
-    #rdfs:domain dcat:Dataset ; # not so good, because LogSeries is not really a 
-                                # Dataset, no is it a LogSet (not temporal)
-    rdfs:range adms:Asset ;
-    rdfs:comment ''' The Asset whose state this LogSet or LogSeries describes.
-                     (eg a console-log might be for nersc edison)
+    rdfs:comment ''' The Asset whose state this LogSet or ConcreteLog describes.
+                     (eg a console-log might be for nersc:edison)
                  ''' ;
+    # this is kind of an ugly way to do it, might want to rethink it (eg 
+    # by making a common base class for LogSet and ConcreteLog)
+    rdfs:domain [ owl:UnionOf (:LogSet :ConcreteLog) ] ;
+    rdfs:range adms:Asset ;
     .
+
+:specificSubjectLabel
+    a owl:DatatypeProperty ;
+    rdfs:comment ''' While maor system components are represented by an adms:Asset,
+                     representing specific smaller components (such as compute nodes
+                     or hsn links) is impractical. To indicate that a log (or LogSet)
+                     is about eg a specific node, or a subset of links, this literal 
+                     label can be added
+                 ''' ;
+    rdfs:domain [ owl:UnionOf (:LogSet :ConcreteLog) ] ;
+    rdfs:range rdfs:Literal ;
+    .
+
 
 # enable a dependence graph between assets so we can identify all logs 
 # affecting a thing, even if they affect it indirectly:
@@ -175,63 +251,6 @@
     .
 
 
-:LogSet
-    a owl:Class ;
-    rdfs:subClassOf dcat:Dataset ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty dct:temporal ; 
-          # eg:"start=2016-01-01T12:00:00+08:00 end=2016-01-05T14:45:00+08:00"
-        owl:cardinality 1 ;
-    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :subject ; 
-          # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
-    ] ;
-    rdfs:comment ''' A LogSet is a Dataset for a specific system, spanning a 
-                     specific timeframe (eg a Cray boot session on NERSC Cori). 
-                     It is recommended but not enforced that a LogSet instance 
-                     should have certain properties describing its provenance:   
-                     # dct:title         a rdfs:Literal
-                     # dct:description   a rdfs:Literal
-                     # dct:publisher     a foaf:Organization
-                     # dct:contactPoint  a vcard:Kind
-                     The actual files (or db queries etc) of the logs are 
-                     described as a :ConcreteLog, based on dcat:Distribution
-                 ''' ;
-    .
-
-:LogSeries
-    a owl:Class;
-    rdfs:comment ''' A "type" of logfile, eg a console or outage log. Can be 
-                     used by tools to indicate how to handle a log. Must have
-                     a property indicating the "canonical" format that tools
-                     can assume on
-                     hmm: if we have multiple source for same type of log (eg 
-                     a file whose records are also in elasticsearch), then maybe 
-                     we need an "equivalentTo" property to link them?
-                 ''' ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :logFormat ;
-        owl:cardinality 1 ;
-    ] ;
-    .
-
-:LogFormatType
-    a owl:Class ;
-    rdfs:comment ''' An entity representing how log data is organized, in order 
-                     to help tools decide how to handle a give log.  
-                     For example, most logs are timestamped-line-per-entry but
-                     some are a timestamped multiline block, others have a file
-                     per timestamp and contain a table, others hove no obvious 
-                     structure at all. 
-                     A LogFormatType is expected to correspond to a handler 
-                     class for logs in that format
-                 ''' ;
-    .
-
 :logFormat
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment ''' An entity indicating how a LogSeries is formatted, from 
@@ -250,7 +269,6 @@
     rdfs:range :LogFormatType ;
     .
 
-
 :logFormatInfo
     a owl:DatatypeProperty ;
     rdfs:comment ''' dictionary-like information that a LogFormatType handler 
@@ -266,30 +284,6 @@
     rdfs:domain :LogSeries ;
     rdfs:range rdfs:Literal ;
     .
-
-
-:ConcreteLog
-    a owl:Class ;
-    rdfs:subClassOf dcat:Distribution ;
-    # required properties:
-    #rdfs:subClassOf [
-    #    # actually is this one strictly required? the isInstanceOf might cover it
-    #    rdf:type owl:Restriction ;
-    #    owl:onProperty dcat:mediaType ; # eg "application/json" or "text/plain"
-    #    owl:cardinality 1 ;
-    #] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :isInstanceOf ; # eg dict:console_logfile
-        owl:cardinality 1 ;
-    ] ;
-    rdfs:comment ''' storage of a specific log, eg a File or database or web 
-                     service, with knowledge of how to handle this type of 
-                     log in this format. Eg, the actual files in a p0 package
-                     are ConcreteLog objects 
-                 ''' ;
-    .
-
 
 :isInstanceOf
     a owl:ObjectProperty, owl:FunctionalProperty ;
