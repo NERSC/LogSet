@@ -46,4 +46,20 @@
     logset:logFormatInfo "filepattern=consumer" ;
     .
 
+:aries_lcb_status
+    a logset:LogSeries ;
+    logset:logFormat dict:filePerTimepoint ;
+    logset:logFormatInfo "filepattern=<system>_aries_lcb_status.<timeYYYYMMDDHHmmss>.xz" ;
+    #logset:logFormatInfo "mediatype=application/x-xz"
+    # will need a specific handler I think, eg:
+    #logset:logFormatInfo "handler=AriesLcbStatusHandler"
+    .
 
+# aries_lcb_status looks like:
+#16:03 sleak@cori05:nersc.aries_lcb$ xzcat cori_aries_lcb_status.20170915070001.xz | head
+#Network topology: class 2
+#Network type: Aries
+#           Nodeid: Service  Core Arch|  Comp state    [Flags]
+#------------------------------------------------------------------------------------
+#    c0-0c0s0a0l00: service        X86|          on    [noflags|]
+#    c0-0c0s0a0l01: service        X86|          on    [noflags|]

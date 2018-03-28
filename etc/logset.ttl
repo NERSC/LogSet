@@ -84,7 +84,7 @@
 
 # declare myself and set a prefix:
 #@base <https://raw.githubusercontent.com/NERSC/LogSet/master/etc> .
-@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets> .
+@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/> .
 @prefix : <logset#> .
 :
     a owl:Ontology ;
@@ -206,7 +206,7 @@
 
 :specificSubjectLabel
     a owl:DatatypeProperty ;
-    rdfs:comment ''' While maor system components are represented by an adms:Asset,
+    rdfs:comment ''' While major system components are represented by an adms:Asset,
                      representing specific smaller components (such as compute nodes
                      or hsn links) is impractical. To indicate that a log (or LogSet)
                      is about eg a specific node, or a subset of links, this literal 

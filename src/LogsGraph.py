@@ -5,6 +5,7 @@
 # python module, which will be 3.6+ anyway, so we'll take advantage
 # of some of python's modern features:
 import sys
+print(sys.version_info)
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
     raise Exception("Requires python 3.5+")
 
@@ -26,24 +27,26 @@ def construct(*catalog_urls, spider=False):
         and reading all of the datasets.
         Note that this will clear and replace an existing graph.
     """
-    if len(catalog_urls)==0:
-        raise Exception("must provide something to read!")
+    #if len(catalog_urls)==0:
+    #    raise Exception("must provide something to read!")
 
     global graph, parsed, unparsed
     graph = rdflib.ConjunctiveGraph()
     # the logset vocab definition and data dictionaries have a common,
-    # well-known source of truth, arse them just once, the first time:
-    unparsed = set([
-             'http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#',
-             'http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#'
-             #'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#',
-             #'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#'
-                  ])
+    # well-known source of truth, parse them just once, the first time:
+    # base = 'https://raw.githubusercontent.com/NERSC/LogSet/master/etc/',
+    base = 'http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/'
+    unparsed = set([base+'logset#', base+'dict#'])
 
     parsed = set()
     logging.debug("parsed has: {}".format(parsed))
     
-    return extend(*catalog_urls, spider=spider)
+    extend(*catalog_urls, spider=spider)
+    # bind well-known namespaces:
+    graph.bind('logset', base+'logset#')
+    graph.bind('dict', base+'dict#')
+    return graph
+    
 
 
 def extend(*new_urls, spider=False):
@@ -75,7 +78,7 @@ def extend(*new_urls, spider=False):
             fmt = rdflib.util.guess_format(full_url)
             graph.parse(full_url, format=fmt)
             #logging.debug("parsed {}".format(url))
-            #logging.debug("namespaces are now: {}".format(str([ns for ns in graph.namespaces()])))
+            logging.debug("namespaces are now: {}".format(str([ns for ns in graph.namespaces()])))
             parsed.add(str(url))
         logging.debug("parsed has: {}".format(parsed))
         unparsed = set()   
