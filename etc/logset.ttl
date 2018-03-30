@@ -168,6 +168,7 @@
 
 :ConcreteLog
     a owl:Class ;
+    rdfs:label "ConcreteLog" ; 
     rdfs:subClassOf dcat:Distribution ;
     # required properties:
     rdfs:subClassOf [

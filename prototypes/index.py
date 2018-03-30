@@ -10,8 +10,15 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 5:
 
 sys.path.append('/global/homes/s/sleak/Monitoring/Resilience/LogSet/src')
 import LogsGraph
+import rdflib
 
 import re
+
+# each new file in the index needs a unique iri:
+import random, string
+def ran_str(len):
+    " produce a string of random letters, of a given length "
+    return ''.join([random.choice(string.ascii_lowercase) for i in range(len)])
 
 if __name__ == '__main__':
 
@@ -34,6 +41,9 @@ if __name__ == '__main__':
         print(usage)
         sys.exit(2)
     path = sys.argv[1]
+
+    # TODO get the baseuri from options
+    baseuri = "cori.nersc.gov:{}/".format(sys.argv[1]) 
 
     graph = LogsGraph.construct(*sys.argv[2:], spider=True)
 
@@ -67,8 +77,8 @@ if __name__ == '__main__':
             print (patterns[tag])
             print (filepattern)
         regex = re.compile(filepattern)
-        series = str(row[1])
-        logfmt = str(row[2])
+        series = row[1]
+        logfmt = row[2]
         mediatype = str(row[3])
         print("got filepattern: {}".format(filepattern))
         print("got regex: {}".format(regex))
@@ -78,6 +88,12 @@ if __name__ == '__main__':
         logseries[filepattern] = (regex, series, logfmt, mediatype) 
     print(sorted(logseries, key=len, reverse=True))
 
+    # make a new graph for this index, with its own namespace 
+    # TODO get the namespace from command-line options:
+    ns = rdflib.Namespace("http://example.org/myindex#")
+    newindex = rdflib.ConjunctiveGraph()
+    newindex.namespace_manager.bind("my_index", ns)
+
     import os
     baselen = len(path)+1
     remaining = set([(base[baselen:],f) for base, d, files in os.walk(path) for f in files])
@@ -86,17 +102,46 @@ if __name__ == '__main__':
     todo.add("") # empty string will be processed last, ensured we look for files 
                  # if/after there are no more patterns to try
     print("{} files remaining".format(len(remaining)))
+
+    # some nodes we will need when added files to the graph:
+    concretelog = LogsGraph.get("logset","ConcreteLog")
+    isinstanceof = LogsGraph.get("logset","isInstanceOf")
+    dcat =  rdflib.Namespace(LogsGraph.getns('dcat'))
+    
+
     while len(todo) > 0:
         for p in sorted(todo, key=len, reverse=True):
+            if p=="":
+                break
             print("indexing files matching {}".format(p))
             regex = logseries[p][0]
+            series = logseries[p][1]
+            logfmt = logseries[p][2]
             matching = set(filter(lambda x: regex.match(x[1]), remaining))
             # should get confirmation from user before removing from remaining
-            # TODO actually create an entry in the graph for this file
+            # now create an entry in the new graph for this file
+            for m in matching:
+                id = ran_str(8)
+                newindex.add( (ns[id], rdflib.RDF.type, concretelog) )
+                #print( dcat['downloadURL'])
+                #print(m)
+                #print(rdflib.URIRef(baseuri + m))
+                newindex.add( (ns[id], dcat['downloadURL'], rdflib.URIRef(baseuri + m[-1])) )
+                newindex.add( (ns[id], isinstanceof, series) )
+                # TODO: have to get the temporal info
             remaining -= matching
             print("{} files remaining".format(len(remaining)))
-            indexed.add(todo.remove(p))
+            indexed.add(p)
+            todo.remove(p)
             print("{} patterns indexed".format(len(indexed)))
+        print("TODO looks for files not matching any pattern")
+        break
+
+    out = newindex.serialize(format='n3').decode('ascii')
+    for line in out.splitlines()[:40]:
+        print(line)
+    for line in out.splitlines()[-40:]:
+        print(line)
 #
 #    import os
 #    baselen = len(path)+1

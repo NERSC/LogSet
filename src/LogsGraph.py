@@ -45,6 +45,8 @@ def construct(*catalog_urls, spider=False):
     # bind well-known namespaces:
     graph.bind('logset', base+'logset#')
     graph.bind('dict', base+'dict#')
+    graph.bind('dcat', 'http://www.w3.org/ns/dcat#')
+    graph.bind('adms', 'http://www.w3.org/ns/adms#')
     return graph
     
 
@@ -99,6 +101,17 @@ def extend(*new_urls, spider=False):
         logging.debug("unparsed has: {}".format(unparsed))
     return graph
 
+
+def getns(prefix):
+    """ given a prefix, return the namespace (why isn't this part of rdflib?) """
+    return [n[1] for n in graph.namespaces() if n[0]==prefix][0]
+
+def get(prefix, item):
+    """ retreive a well-known node by name, eg logset:ConcreteLog """
+    return rdflib.URIRef(getns(prefix) + item)
+    # this is only valid for triples:
+    #if (concretelog,rdflib.RDF.type,rdflib.OWL.Class) not in graph:
+    #    raise Exception("someting is wrong")
 
 
 
