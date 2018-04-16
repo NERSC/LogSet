@@ -54,6 +54,8 @@
                   logset:startDate "2017-09-06T15:20:21.827169-07:00"^^xsd:dateTime ; 
                   logset:endDate "2017-09-06T15:22:42.809617-07:00"^^xsd:dateTime ;
                  ] ;
+    # size is also useful:
+    # dcat:byteSize "5120"^^xsd:decimal ;
     .
     
 :console-20170907

@@ -8,8 +8,4 @@ class LogFormatType:
         LogFormatType.factory(logfmt_uri, dict_of_logformatinfo)
         (note that "label" here is the iri, sans prefix)
     """
-    logfmts = {} # type_label: handler_class
-    @staticmethod
-    def register(cls, label):
-        LogFormatType.logfmts[label] = cls
-        
+    pass
