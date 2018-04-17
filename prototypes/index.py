@@ -137,7 +137,7 @@ if __name__ == '__main__':
     baselen = len(path)+1
     remaining = set([(base[baselen:],f) for base, d, files in os.walk(path) for f in files])
     indexed = set()
-    todo = set(series.keys())
+    todo = set(series.keys())  # todo is patterns still to look for
     todo.add("") # empty string will be processed last, ensured we look for files 
                  # if/after there are no more patterns to try
     print("{} files remaining".format(len(remaining)))
@@ -167,29 +167,31 @@ if __name__ == '__main__':
             regex = re.compile(p)
             logseries = series_info[series[p]]
             matching = set(filter(lambda x: regex.match(x[1]), remaining))
+            # this is so handlers can extract metadata from filepattern:
+            logseries.fmtInfo['fileregex'] = regex 
             # now create an entry in the new graph for this file
-            # TODO should get confirmation from user before creating the 
-            # entry and removing it from remaining
             for m in matching:
-                id = ran_str(8)
-                newindex.add( (ns[id], rdf.type, logset.ConcreteLog) )
-                newindex.add( (ns[id], dcat.downloadURL, rdflib.URIRef(baseuri + m[-1])) )
-                newindex.add( (ns[id], logset.isInstanceOf, logseries.uri) )
-                # TODO: have to get the temporal info
-                # need to instantiate appropriate LogFormatType
                 filepath = os.sep.join([path, m[0], m[1] ])
-                #print(filepath)
                 try:
                     handler = handlers.factory(logseries.logFormatType, filepath, logseries.fmtInfo)
                 except handlers.UnsupportedLogFormatHandler:
                     print("TODO handle new things! {}".format(logseries.logFormatType))
+                t_start, t_end = handler.timespan()
+                size = handler.size
+                # TODO get confirmation from user before creating the entry and 
+                # removing it from the 'remaining' set
+
+                id = ran_str(8)
+                newindex.add( (ns[id], rdf.type, logset.ConcreteLog) )
+                newindex.add( (ns[id], dcat.downloadURL, rdflib.URIRef(baseuri + os.sep.join(i for i in m if i))) ) 
+                newindex.add( (ns[id], logset.isInstanceOf, logseries.uri) )
                 newindex.add( (ns[id], dcat.byteSize, rdflib.Literal(handler.size, datatype=xsd.integer)) )
                 # temporal info needs a blank node:
                 bnode = rdflib.BNode()
                 newindex.add( (ns[id], dcat.temporal, bnode) )
-                t_start, t_end = handler.timespan()
                 newindex.add( (bnode, logset.startDate, rdflib.Literal(t_start, datatype=xsd.integer)) )
                 newindex.add( (bnode, logset.endDate, rdflib.Literal(t_end, datatype=xsd.integer)) )
+                newindex.add( (ns[id], dcat.byteSize, rdflib.Literal(size, datatype=xsd.integer)) )
                 # add file to index:
                 newindex.add( (ns['index'], dcat['distribution'], ns[id]) )
             remaining -= matching
@@ -197,14 +199,19 @@ if __name__ == '__main__':
             indexed.add(p)
             todo.remove(p)
             print("{} patterns indexed".format(len(indexed)))
-        print("TODO looks for files not matching any pattern")
-        break
+        todo.remove("")
+        print("TODO look for files not matching any pattern")
+        # now find files whose pattern we don't know
+        print(todo)
+        for m in remaining:
+            print ("what to do with file:" + str(m))
+        #break
 
     out = newindex.serialize(format='n3').decode('ascii')
-    for line in out.splitlines()[:40]:
-        print(line)
-    for line in out.splitlines()[-40:]:
-        print(line)
+    #for line in out.splitlines()[:40]:
+    #    print(line)
+    #for line in out.splitlines()[-40:]:
+    #    print(line)
 #
 #    import os
 #    baselen = len(path)+1

@@ -47,8 +47,26 @@ class LocalTimeStampedLogFile(LogFormatType):
     def __init__(self, path, info):
         self.path = path
         # regular attributes:
-        for f in ('ts_word', 'part_word'):
-            setattr(self, f, int(info.get(f, None))) # TODO handle int conversion better
+        # ts_words is the word or word ranges making up the timestamp, 0 is first-word-in-line:
+        ts_words = info.get('ts_words',None)
+        if ts_words:
+            first, sep, last = ts_words.partition('-')
+            ifirst = int(first)
+            if last:
+                ilast = int(last)+1
+            else:
+                ilast = ifirst + 1
+            self.ts_words = (ifirst,ilast)
+        else:
+            self.ts_words = None
+        # part_word is the word identifying the part about which each entry is:
+        part_word = info.get('part_word',None)
+        if part_word:
+            self.part_word = int(part_word)
+        else:
+            self.part_word = None
+        #for f in ('ts_words', 'part_word'):
+        #    setattr(self, f, int(info.get(f, None))) # TODO handle int conversion better
         # attributes we might have to find from file:
         for f in ('size', 't_start', 't_end'):
             setattr(self, '_'+f, info.get(f, None))
@@ -59,6 +77,7 @@ class LocalTimeStampedLogFile(LogFormatType):
              self._size = os.path.getsize(self.path)
         return self._size
 
+    import io
     def timespan(self):
         """ return the timestamps of the first and last entries in the file """
         if self._t_start is None or self._t_end is None:
@@ -66,11 +85,13 @@ class LocalTimeStampedLogFile(LogFormatType):
                 # find the first and last lines, check the timestamps
                 firstline = f.readline()
             sz = self.size
-            with open(self.path, 'rb') as f:
+            #with open(self.path, 'rb') as f:
+            with open(self.path, 'r') as f: # must be text or string methods get confused
                 bs = min(self._blocksz, sz)
                 lines = []
                 while bs <= sz:
-                    f.seek(-bs, 2)
+                    #f.seek(-bs, 2)
+                    f.seek(sz-bs)   # can only seek from start in text files
                     lines = f.readlines() # read to end of file
                     if len(lines) > 1:
                         break
@@ -78,8 +99,13 @@ class LocalTimeStampedLogFile(LogFormatType):
                 else:
                     raise Exception("can't find last entry in {0:s}".format(self.path))
                 lastline = lines[-1]
-            self._t_start = dateutil.parser.parse(firstline.split()[self.ts_word])
-            self._t_end = dateutil.parser.parse(lastline.split()[self.ts_word])
+            print (lastline)
+            print(lastline.split())
+            print(lastline.split()[self.ts_words[0]:self.ts_words[1]])
+            print(self.ts_words)
+            print(' '.join(lastline.split()[self.ts_words[0]:self.ts_words[1]]))
+            self._t_start = dateutil.parser.parse(' '.join(firstline.split()[self.ts_words[0]:self.ts_words[1]]))
+            self._t_end = dateutil.parser.parse(' '.join(lastline.split()[self.ts_words[0]:self.ts_words[1]]))
         return (self._t_start, self._t_end)
 
     def entries(self, since=None, until=None, parts=None):

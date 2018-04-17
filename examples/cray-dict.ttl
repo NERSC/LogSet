@@ -24,32 +24,32 @@
   2017-09-06T15:22:42.809276-07:00 c2-0c0s0n1 Wait4Boot: EXIT ---> PXE Boot
                  ''' ;
     logset:logFormat dict:timeStampedLogFile ;
-    logset:logFormatInfo "filepattern=console-<dateYYYYMMDD>" ;
+    logset:logFormatInfo "filepattern=console-<dateYYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=console$" ;
-    logset:logFormatInfo "ts_word=0" ;
+    logset:logFormatInfo "ts_words=0" ;
     logset:logFormatInfo "part_word=1" ;
     .
 
 :messages_logfile
     a logset:LogSeries ;
     logset:logFormat dict:timeStampedLogFile ;
-    logset:logFormatInfo "filepattern=messages-<dateYYYYMMDD>" ;
+    logset:logFormatInfo "filepattern=messages-<dateYYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=messages$" ;
-    logset:logFormatInfo "ts_word=1" ;
+    logset:logFormatInfo "ts_words=1" ;
     logset:logFormatInfo "part_word=2" ;
     .
 
 :consumer_logfile
     a logset:LogSeries ;
     logset:logFormat dict:unstructuredFile ; # actually it has structure, but too complex initially
-    logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>" ;
+    logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=consumer$" ;
     .
 
 :aries_lcb_status
     a logset:LogSeries ;
     logset:logFormat dict:filePerTimepoint ;
-    logset:logFormatInfo "filepattern=<system>_aries_lcb_status.<timeYYYYMMDDHHmmss>.xz" ;
+    logset:logFormatInfo "filepattern=<system>_aries_lcb_status.<timeYYYYMMDDHHmmss>.xz$" ;
     #logset:logFormatInfo "mediatype=application/x-xz"
     # will need a specific handler I think, eg:
     #logset:logFormatInfo "handler=AriesLcbStatusHandler"
