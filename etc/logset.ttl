@@ -1,60 +1,9 @@
-# An ontology for a dataset of system logs and related information to support 
-# failure analysis for large HPC clusters
-
-# Ontology scope and competency questions:
-#  - purpose of this ontology is to allow logs relevant to some HPC system
-#    (primarily targetting Cray systems at DOE sites, but the idea is more
-#    generally valid). It should support publication of:
-#    1. a data dictionary - which describes "types" of log such that a tool 
-#       can read/make use of them (eg a console log for a cray XC with CNL6 
-#       such as NERSC Edison)
-#    2. an entity catalog, identifying/describing systems and components and 
-#       how they affect each other (eg edison scratch affects edison, so does 
-#       the NGF shared filesystem, so does the cooling system in the room 
-#       housing them) 
-#    3. an index for a given LogSet. A LogSet is a set of related logs bundled 
-#       together with a common subject and common (perhaps aggregate) timespan.
-#       Each piece of a LogSet has a LogSeries (the "type" of log, ie how a 
-#       tool can handle it) and a dcat:Distribution 
-#       The index lists the parts of a LogSet as logset:ConcreteLogs, a 
-#       constrained type of dcat:Distribution, thus describing how to access 
-#       the file/stram/api/whatever.
-#       A query for logs relevant to some event might return data from 
-#       several LogSets, eg the SMW system logs, the Slurm history, the 
-#       filesystem logs, the MOTDs, and annotations of known events affecting 
-#       that system during the period of interest
-#    4. Annotations. A set of annotations might span multiple LogSets, and 
-#       a LogSet may be the subject of several annotation sets
-#       .. Annotations are a type of LogSeries really..
-
-#  - ontology describes log data for an HPC cluster (primarily target Cray
-#    systems at DOE sites, but ideally more generally valid). The LogSet itself
-#    is a dcat:DataSet, access to it is expected to be published as a 
-#    dcat:Distribution and by an organization described in terms of foaf:Agent.
-#  - 
-#    The system in question is described as an adms:Asset.
-#  - the specifics added by this ontology are intended to support tools that 
-#    collate and manipulate related sets of logs, for the purpose of 
-#    investigating resiliency. Especially, logs and system-state data are 
-#    stored as timestamped records of events or state, usually in some defined
-#    format (eg record-per-line-in-order-of-increasing time), and often with 
-#    some component-identifying information. Thus a tool should be able to use 
-#    an RDF description of a LogSet to select the approprate class to 
-#    instantiate to manipulate each file or data source in the LogSet
-#  - A LogSet has associated Annotations: human- or tool-generated descriptions
-#    of events with a timespan and links to possibly-relevraent log entries
-#  - Therefore, competency questions are:
-#     - which logs are relevant to system xyz during time period abc?
-#     - which log entries are relevant to thhis annotation?
-#     - what file and record format are used in a selected logfile?
-#     - how should a tool access this LogSeries in this LogSet?
-#    (some more general competency questions - more at the dcat:Dataset level
-#    are eg "what LogSets are available for system xyz?")
-
-# the dataset definition is derived from the Data Catalog Vocabulary, a single
-# dataset is a subtype of dcat:Dataset and can be managed as part of a 
-# dcat:Catalog and published/accessed as a dcat:Distribution
-@prefix dcat: <http://www.w3.org/ns/dcat#> .
+# An ontology for metadata describing log-like information about HPC systems,
+# intended to support analysis of faults and failures.
+#
+# a client should be able to query a graph of logset objects to find, eg
+# logfiles and job records etc about a specific job. or affected by a 
+# specific component failure
 
 # basic vocabularies used here:
 # rdf and rdfs between them define essential types and relationships:
@@ -64,18 +13,22 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 # dublin core terms, form base of dcat vocab:
 @prefix dct: <http://purl.org/dc/terms/> .
-# For provenance information: the publisher of a LogSet is a foaf:Agent (most
-# likely an foaf:Organization), and the LogSet is comprised of logfiles for one
-# or more systems, described in terms of organizational Assets (adms:Asset):
-# (note: adms is really intended to describe metadata assets, so by using it 
-# for physical assets we have overextended it a little - but I haven't seen a 
-# better alternative so it will do for now) ("web of things" at 
-# https://www.w3.org/ns/td/td.ttl might prove a better candidate if necessary)
-# (maybe not, a "thing" in WoT must be http accessible)
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix adms: <http://www.w3.org/ns/adms#> .
 # to compare dateTime types:
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# the dataset definition is derived from the Data Catalog Vocabulary, a single
+# dataset is a subtype of dcat:Dataset and can be managed as part of a 
+# dcat:Catalog and published/accessed as a dcat:Distribution
+# (note that Catalogs can link to other Catalogs, and to rdf descriptions
+# of Subjects such as "Cori", "cscratch" and their relationships, via 
+# rdfs:seeAlso)
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+
+# each ConcreteLog contains entries about some Entity, and is and instanceOf
+# some LogSeries providing some "type" of information ("InfoType", eg "job_records"
+# or "log_messages" or "queue_snapshots" or "annotations"). The Entity and 
+# InfoType are describes as skos:Concepts:
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 # valid urls/bases/prefixes include:
 #@prefix dict: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/dict#> .
@@ -96,24 +49,9 @@
 :LogSet
     a owl:Class ;
     rdfs:subClassOf dcat:Dataset ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty dct:temporal ; 
-          # dct:temporal is poorly defined, so following the example of DDI and
-          # others, use a blank node like:
-          # dct:temporal [ a dct:PeriodOfTime ;
-          #   logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ;
-          #   logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
-          #   ] ;
-        owl:cardinality 1 ;
-    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :subject ; 
-          # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
-    ] ;
-    rdfs:comment ''' A LogSet is a Dataset for a specific system, spanning a 
-                     specific timeframe (eg a Cray boot session on NERSC Cori). 
+    rdfs:comment ''' A LogSet is a dcat:Dataset of related logs (eg, the logs 
+                     from a Cray boot session on NERSC Cori - related in system
+                     and access and timespan)
                      It is recommended but not enforced that a LogSet instance 
                      should have certain properties describing its provenance:   
                      # dct:title         a rdfs:Literal
@@ -145,8 +83,15 @@
                  ''' ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
-        owl:onProperty :logFormat ;
+        owl:onProperty :logFormatType ;  # must specify a format
         owl:cardinality 1 ;
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :infoType ;  
+        # any LogSeries must have *some* type of entries, and some might have 
+        # several, eg a slurm_instance has job_records and also node_state
+        owl:minCardinality 1 ; 
     ] ;
     .
 
@@ -166,6 +111,23 @@
                  ''' ;
     .
 
+:InfoType
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:comment ''' What the entries in a LogSeries are, eg "log_messages"
+                     or "job_records". As an skos:Concept, InfoTypes can be 
+                     linked as skos:narrower/broader/related
+                 ''' ;
+    . 
+
+:Subject
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:comment ''' A thing that a ConcreteLog is about, eg a system or 
+                     subsystem, or even a specific job 
+                 ''' ;
+    .
+
 :ConcreteLog
     a owl:Class ;
     rdfs:label "ConcreteLog" ; 
@@ -180,6 +142,17 @@
         rdf:type owl:Restriction ;
         owl:onProperty dct:temporal ; 
         owl:cardinality 1 ;
+        # dct:temporal is poorly defined, so following the example of DDI and
+        # others, use a blank node like:
+        # dct:temporal [ a dct:PeriodOfTime ;
+        #   logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ;
+        #   logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
+        #   ] ;
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :subject ; 
+          # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
     ] ;
     rdfs:comment ''' An actual, specific log, eg a File or database or web 
                      service, with knowledge of how to handle this type of 
@@ -199,27 +172,27 @@
     rdfs:comment ''' The Asset whose state this LogSet or ConcreteLog describes.
                      (eg a console-log might be for nersc:edison)
                  ''' ;
-    # this is kind of an ugly way to do it, might want to rethink it (eg 
-    # by making a common base class for LogSet and ConcreteLog)
-    rdfs:domain [ owl:UnionOf (:LogSet :ConcreteLog) ] ;
-    rdfs:range adms:Asset ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range :Subject ;
     .
 
-:specificSubjectLabel
+:specificSubjectPattern
     a owl:DatatypeProperty ;
-    rdfs:comment ''' While major system components are represented by an adms:Asset,
+    rdfs:comment ''' While major system components are represented by a Subject,
                      representing specific smaller components (such as compute nodes
                      or hsn links) is impractical. To indicate that a log (or LogSet)
                      is about eg a specific node, or a subset of links, this literal 
                      label can be added
                  ''' ;
-    rdfs:domain [ owl:UnionOf (:LogSet :ConcreteLog) ] ;
+    rdfs:domain :ConcreteLog ;
     rdfs:range rdfs:Literal ;
     .
 
-
-# enable a dependence graph between assets so we can identify all logs 
-# affecting a thing, even if they affect it indirectly:
+# skos:broader and skos:narrower allow a kind of hierarchy, which works in
+# the sense that, eg "cori" is broader that "cori logins" .. but doesn't 
+# neatly describe that, eg, "cori" is affected by the condition of "ngf".
+# We'll extend the model a little to support "affects" relationships 
+# between Subjects:
 :affects
     a owl:ObjectProperty ;
     rdfs:comment ''' Components in an HPC center are not a strict hierarchy,
@@ -227,8 +200,8 @@
                      So we connect related systems and subsystems with an 
                      "affects" relationship
                  ''' ;
-    rdfs:domain adms:Asset ;
-    rdfs:range adms:Asset ;
+    rdfs:domain :Subject ;
+    rdfs:range :Subject ;
     .
 
 
@@ -251,23 +224,38 @@
     rdfs:range xsd:dateTime ;
     .
 
+# other useful, optional info about a concretelog:
+# dcat:byteSize
+:recordCount
+    a owl:DatatypeProperty ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range xsd:integer ;
+    .
 
-:logFormat
+:estRecordCount
+    a owl:DatatypeProperty ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range xsd:integer ;
+    rdfs:comment ''' an estimate of the number of records in a ConcreteLog,
+                     if that is guessable/appropriate
+                 ''' ;
+    .
+
+
+:logFormatType
     a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:comment ''' An entity indicating how a LogSeries is formatted, from 
-                     which tools can decide how to process it.
-                     For example, most logs are timestamped-line-per-entry (in
-                     a file or stream) but some are a timestamped multiline 
-                     block, others have a file per timestamp and contain a 
-                     table, others hove no obvious structure at all. 
-                     problem: what if the 
-                     same log might be in a native file or as records in a 
-                     database? then the logFormat should provide enough 
-                     information for a tool to answer questions about it?
-                     or does that count as a different logseries?
+    rdfs:comment ''' the LogFormatType for this LogSeries
                  ''' ;
     rdfs:domain :LogSeries ;
     rdfs:range :LogFormatType ;
+    .
+
+:infoType
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment ''' the InfoType for this LogSeries
+                 ''' ;
+    rdfs:domain :LogSeries ;
+    rdfs:range :InfoType ;
     .
 
 :logFormatInfo
@@ -293,44 +281,25 @@
     rdfs:range :LogSeries ;
     .
 
+# when indexing a bunch of logs, its helpful to be able to use filename patterns
+# to guess the logseries based on the filename (eg messages-20170129 is a messages
+# logfile for Jan 29, 2017). In practice this can be implemented by checking 
+# filenames against a regex. But getting the regex right for every LogSeries is 
+# tedious and unreliable, so we'll set up a kind of database of tags and patterns.
+# the actual tags and patterns are in dicts instead of the vocab, because they
+# are implementation-specific and will grow over time, but the vocab parts are:
+:FilenamePattern a owl:Class .
 
-## -------
-#
-# some example things within a dataset:
-#
-# BEGIN=p0-<timestamp> file. Empty file, marks start of boot session
-#
-# bootinfo.p0-20170906t151820. seems to have output of commands, delimited by 
-#                              start-of-line timestamps. Some output lines are 
-#                              also prefixed by timestamp, but not all
-# bootrecord/boothistory       timestamped log  
-#           /boot_record       blocks of text, each coresponding to a log entry
-#           /node_table        some sort of table
-# bootrecorder-<datestamp>     timestamped log
-# compute/<nodename>-<datestamp> timestamped log
-# config.p0-<timestamp>        unstructured text
-# console-<datestamp>          timestamped log
-# console.pid.p0               unstructured text
-# console.p0-20170906t151820   empty file
-# console.cmd.p0               unstructured text
-# consumer-<datestamp>         timestamped blocks of text               
-# craylog.p0-20170906t151820   multiple sections, including tables, logs and unstructured text
-# craylog.p0-<timestamp>.save* appears to be manually captured state of main craylog
-#                              at a couple of points in time. Not part of each dataset
-# dumpd-<datestamp>            timestamped log
-# dws/dwmd-<datestamp>         timestamped log
-# hwerrlog.p0-20170906t151820            binary data
-# hwerrlog.p0-20170906t151820.<number>   binary data
-# hwinv.p0-20170906t151820     xml 
-# messages-<datestamp>         timestamped log
-# nersc.aries_lcb/<cluster>_aries_lcb_status.<timestamp>.xz table
-# netwatch-<datestamp>         table with timestamp columns
-# nlrd-<datestamp>             timestamped log
-# etc
-#
-# will also need to have annotations db, and event log (eg outages), and perhaps job info
-# (maybe a db, or log, or both)
-#
-# so file types will need to reflect this.
-# maybe each thing has a label, and a rule for the filename pattern
+:tag    
+    a owl:DatatypeProperty ;
+    rdfs:domain :FilenamePattern ;
+    rdfs:range rdfs:Literal ;
+    .
+
+:regex
+    a owl:DatatypeProperty ;
+    rdfs:domain :FilenamePattern ;
+    rdfs:range rdfs:Literal ;
+    .
+
 

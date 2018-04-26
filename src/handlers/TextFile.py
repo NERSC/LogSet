@@ -8,80 +8,6 @@ print(sys.version_info)
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
     raise Exception("Requires python 3.5+ .. try:\n  module load python/3.6-anaconda-4.4")
 
-from .LogFormatType import LogFormatType
-from .TextFile import LocalTextFile, RemoteTextFile
-
-from collections import namedtuple
-ParseRule = namedtuple('ParseRule', 'regex, parser')
-
-def cast(match, group, converter):
-    """ given a re match object, identifier for a possibly-matched group
-        and a conversion function, return a converted object. Eg, if:
-          match = re.search('(?P<first>\d)(?:-(?P<last>\d))?',1-3)
-          group = 'last'
-          converter = int
-        then cast(match, group, converter) == 3 
-    """
-    text = match.group(group)
-    return converter(text) if text else None
-
-
-class TimeStampedLogFile(LogFormatType):
-
-    # this probably belongs in all LogFormatType:
-    _logFormatInfo_keys = {
-        # eg ts_words=0-1  or ts_words=1
-        'ts_words': ParseRule( re.compile('(?P<first>\d)(?:-(?P<last>\d))?'),
-                               lambda m: (cast(m,'first',int),cast(m,'last',int))),
-        'part_word': ParseRule( re.compile('(?P<word>\d)'),
-                               lambda m: cast(m,'word',int))
-                          }
-    # the above is for properties of the LogSeries
-    # what about properties of the ConcreteLog, like?:
-    #    def startDate(self)
-    #    def endDate(self)
-    #    def byteSize(self)
-    #    def recordCount(self)
-    #    def estRecordCount(self)
-
-    # if indexing a file, we want to use the logformatinfo to help work those out
-    # but if reading a file based on its graph entry, want to get eg the dct:temporal
-    # or dcat:byteSize properties (and downloadurl, etc)
-    # Maybe require the sparql query to handle finding properties, and pass them 
-    # in through kwargs eg newlogfile = TimeStampedLogFile(url, **properties)
-
-    # whwn indexing, sometimes we want to write a new LogSeries, other times a 
-    # node ConcreteLog .. how to distinguish if only one handler class does both
-    # things? 
-    # hmm, I think confusion is because, eg TimeStampedLogFile is a logFormatType,
-    # but messages_logfile is a LogSeries .. but a TimeStampedLogFile looks after
-    # the reading/writing data, and the messages_logfile is a specific TimeStampedLogFile
-    # that eg looks after ?
-    # we have TimeStampedLogFile, messages_logfile and messages-20170101
-
-
-    def __init__(self, url, **kwargs):
-        self.url = url
-        for attr,parserule in self._logFormatInfo_keys.items():
-            if attr in kwargs:
-                m = parserule.regex.search(info[attr])
-                setattr(self, attr, parserule.parser(m))
-
-
-
-
-
-
-
-
-
-
-
-# to get the timespan, and also to extract slices from a log, we need to 
-# fetch arbitrary ranges from within the logfile. We can do this for local 
-# files with seek, or remote files with urllib and range headers, but no
-# method works for both. So we have two versions of the class and a factory
-# method to instantiate the appropriate one:
 import re
 protocols = ['http', 'https', 'file']
 pattern = '|'.join(( '(?P<{0}>{0}:)'.format(p) for p in protocols ))
@@ -302,3 +228,5 @@ class RemoteTextFile:
                         yield line
                         line = f.readline()
 
+
+    

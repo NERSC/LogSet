@@ -23,8 +23,9 @@
   2017-09-06T15:22:42.809249-07:00 c2-0c0s0n1 Wait4Boot: Blade Controller Boot Protocol version - 1
   2017-09-06T15:22:42.809276-07:00 c2-0c0s0n1 Wait4Boot: EXIT ---> PXE Boot
                  ''' ;
-    logset:logFormat dict:timeStampedLogFile ;
-    logset:logFormatInfo "filepattern=console-<dateYYYYMMDD>$" ;
+    logset:infoType dict:log_messages ;
+    logset:logFormatType dict:timeStampedLogFile ;
+    logset:logFormatInfo "filepattern=console-<date:YYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=console$" ;
     logset:logFormatInfo "ts_words=0" ;
     logset:logFormatInfo "part_word=1" ;
@@ -32,8 +33,9 @@
 
 :messages_logfile
     a logset:LogSeries ;
-    logset:logFormat dict:timeStampedLogFile ;
-    logset:logFormatInfo "filepattern=messages-<dateYYYYMMDD>$" ;
+    logset:infoType dict:log_messages ;
+    logset:logFormatType dict:timeStampedLogFile ;
+    logset:logFormatInfo "filepattern=messages-<date:YYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=messages$" ;
     logset:logFormatInfo "ts_words=1" ;
     logset:logFormatInfo "part_word=2" ;
@@ -41,25 +43,21 @@
 
 :consumer_logfile
     a logset:LogSeries ;
-    logset:logFormat dict:unstructuredFile ; # actually it has structure, but too complex initially
-    logset:logFormatInfo "filepattern=consumer-<dateYYYYMMDD>$" ;
+    logset:infoType dict:log_messages ;
+    logset:logFormatType dict:unstructuredFile ; # actually it has structure, but too complex initially
+    logset:logFormatInfo "filepattern=consumer-<date:YYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=consumer$" ;
     .
 
+:aries_status_snapshots a logset:infoType .
+
 :aries_lcb_status
     a logset:LogSeries ;
-    logset:logFormat dict:filePerTimepoint ;
-    logset:logFormatInfo "filepattern=<system>_aries_lcb_status.<timeYYYYMMDDHHmmss>.xz$" ;
+    logset:infoType :aries_status_snapshots ;
+    logset:logFormatType dict:filePerTimepoint ;
+    logset:logFormatInfo "filepattern=<system:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
     #logset:logFormatInfo "mediatype=application/x-xz"
     # will need a specific handler I think, eg:
     #logset:logFormatInfo "handler=AriesLcbStatusHandler"
     .
 
-# aries_lcb_status looks like:
-#16:03 sleak@cori05:nersc.aries_lcb$ xzcat cori_aries_lcb_status.20170915070001.xz | head
-#Network topology: class 2
-#Network type: Aries
-#           Nodeid: Service  Core Arch|  Comp state    [Flags]
-#------------------------------------------------------------------------------------
-#    c0-0c0s0a0l00: service        X86|          on    [noflags|]
-#    c0-0c0s0a0l01: service        X86|          on    [noflags|]

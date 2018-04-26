@@ -21,15 +21,12 @@ parsed = set()
 unparsed = set()
 
 import os
-def construct(*catalog_urls, spider=False):
+def construct(*catalog_urls: str, spider=False) -> rdflib.ConjunctiveGraph:
     """ starting with one or more catalog urls, parse the catalogs
         and optionally any peers, then build out the graph by fetching
         and reading all of the datasets.
         Note that this will clear and replace an existing graph.
     """
-    #if len(catalog_urls)==0:
-    #    raise Exception("must provide something to read!")
-
     global graph, parsed, unparsed
     graph = rdflib.ConjunctiveGraph()
     # the logset vocab definition and data dictionaries have a common,
@@ -42,16 +39,26 @@ def construct(*catalog_urls, spider=False):
     logging.debug("parsed has: {}".format(parsed))
     
     extend(*catalog_urls, spider=spider)
-    # bind well-known namespaces:
+    # bind well-known namespaces to well-known prefixes:
     graph.bind('logset', base+'logset#')
-    graph.bind('dict', base+'dict#')
     graph.bind('dcat', 'http://www.w3.org/ns/dcat#')
-    graph.bind('adms', 'http://www.w3.org/ns/adms#')
+    #graph.bind('dict', base+'dict#')
+    #graph.bind('adms', 'http://www.w3.org/ns/adms#')
+
+    # note rdflib provides these, bind for common lowercase usage:
+    graph.bind('rdf', rdflib.namespace.RDF)
+    graph.bind('rdfs', rdflib.namespace.RDFS)
+    graph.bind('owl', rdflib.namespace.OWL)
+    graph.bind('xsd', rdflib.namespace.XSD)
+    graph.bind('foaf', rdflib.namespace.FOAF)
+    graph.bind('skos', rdflib.namespace.SKOS)
+    graph.bind('doap', rdflib.namespace.DOAP)
+    graph.bind('dc', rdflib.namespace.DC)
+    graph.bind('dct', rdflib.namespace.DCTERMS)
     return graph
-    
 
 
-def extend(*new_urls, spider=False):
+def extend(*new_urls: str, spider=False) -> rdflib.ConjunctiveGraph:
     """ extend the graph with the currently-unparsed urls """
     global graph, parsed, unparsed
     q_remotes = ''' SELECT ?uri WHERE
@@ -69,7 +76,7 @@ def extend(*new_urls, spider=False):
     # find Catalogs
     while len(unparsed) > 0:
         for url in unparsed:
-            # for now, assume the file is .ttl and parse accordingly
+            # TODO for now, we assume the file is .ttl and parse accordingly
             # eventually we might use urllib to check for possible file 
             # extentions and guess format with rdflib.util.guess_format(url)
             if url.endswith('#'):
@@ -104,8 +111,9 @@ def extend(*new_urls, spider=False):
 
 def getns(prefix):
     """ given a prefix, return the namespace (why isn't this part of rdflib?) """
-    return [n[1] for n in graph.namespaces() if n[0]==prefix][0]
+    return [rdflib.Namespace(n[1]) for n in graph.namespaces() if n[0]==prefix][0]
 
+# may not work anymore (updated getns to return actual namespace)
 def get(prefix, item):
     """ retreive a well-known node by name, eg logset:ConcreteLog """
     return rdflib.URIRef(getns(prefix) + item)

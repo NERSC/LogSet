@@ -8,4 +8,11 @@ class LogFormatType:
         LogFormatType.factory(logfmt_uri, dict_of_logformatinfo)
         (note that "label" here is the iri, sans prefix)
     """
+    # should have:
+    # @property 
+    # def startDate(self)
+    # def endDate(self)
+    # def byteSize(self)
+    # def recordCount(self)
+    # def estRecordCount(self)
     pass

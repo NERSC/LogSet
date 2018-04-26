@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# next step is to refactor I think
+# the handlers need to handle creating LogSeries
+# and the remote-vs-local logfiles need to be handled with better separation-of-concerns
+#   (is this something a visitor pattern is suitable for? no. template method might do it)
+
 import sys
 # system python 3 on Cori is broken so user will need to load a
 # python module, which will be 3.6+ anyway, so we'll take advantage
@@ -30,6 +35,17 @@ class LogSeries:
         self.mediaType = None
         self.logFormatType = None
         self.fmtInfo = {}
+
+
+# from https://stackoverflow.com/questions/2533120/show-default-value-for-editing-on-python-input-possible
+# input() that writes text for user to edit
+import readline
+def rlinput(prompt, prefill=''):
+   readline.set_startup_hook(lambda: readline.insert_text(prefill))
+   try:
+      return input(prompt)
+   finally:
+      readline.set_startup_hook()
 
 
 if __name__ == '__main__':
@@ -77,8 +93,9 @@ if __name__ == '__main__':
                 ?logseries logset:logFormatInfo ?filepattern .
                 filter regex(?filepattern, "^filepattern=") .
             }'''
-    # require tags to be alphanumeric:
-    tags = re.compile('(<\w+>)')
+    # require tags to be alphanumeric: (but allow : to separate name from pattern)
+    # FIXME allow ":" as well, to separate name:pattern
+    tags = re.compile('(<[\w:]+>)')
     for row in graph.query(query):
         fp = str(row[0]).partition('=')[2]
         plist = tags.split(fp)
@@ -131,7 +148,10 @@ if __name__ == '__main__':
     # TODO get the namespace from command-line options:
     ns = rdflib.Namespace("http://example.org/myindex#")
     newindex = rdflib.ConjunctiveGraph()
-    newindex.namespace_manager.bind("my_index", ns)
+    newindex.namespace_manager.bind("myindex", ns)
+    # namespace for dict with new series:
+    mydict_ns = rdflib.Namespace("http://example.org/mydict#")
+    mydict = None
 
     import os
     baselen = len(path)+1
@@ -149,8 +169,10 @@ if __name__ == '__main__':
     #dcat =  rdflib.Namespace(LogsGraph.getns('dcat'))
 
     # some namespaces fthat we use when adding nodes to the graph:
-    dcat   = rdflib.Namespace(LogsGraph.getns('dcat'))
-    logset = rdflib.Namespace(LogsGraph.getns('logset'))
+    #dcat   = rdflib.Namespace(LogsGraph.getns('dcat'))
+    #logset = rdflib.Namespace(LogsGraph.getns('logset'))
+    dcat   = LogsGraph.getns('dcat')
+    logset = LogsGraph.getns('logset')
     rdf = rdflib.namespace.RDF
     xsd = rdflib.namespace.XSD
     
@@ -159,6 +181,8 @@ if __name__ == '__main__':
     # TODO: get and add all the other properties of the index itself
     # (each logfile adds itself as a distribution)
 
+    # TODO .. and need to find a good way to enforce pattern format
+    # of having an "outer" group that captures the whole tag
     while len(todo) > 0:
         for p in sorted(todo, key=len, reverse=True):
             if p=="":
@@ -199,12 +223,64 @@ if __name__ == '__main__':
             indexed.add(p)
             todo.remove(p)
             print("{} patterns indexed".format(len(indexed)))
-        todo.remove("")
         print("TODO look for files not matching any pattern")
         # now find files whose pattern we don't know
         print(todo)
         for m in remaining:
-            print ("what to do with file:" + str(m))
+            fpath = os.sep.join(i for i in m if i)
+            print("found a new file pattern: {}\nDoes it correspond to any of these known LogSeries?".format(fpath))
+            series_keys = (n for n in series_info.keys())
+            print("{0:d}  {1:s}".format(0, '(none)'))
+            #for i,name in zip(range(1,len(series_keys)+1),series_keys):
+            for i,name in range(1,len(series_keys)+1):
+                #print("{0:d}  {1:s}".format(i, name))
+                print("{0:d}  {1:s}".format(i, series_keys[i]))
+            nb = int(input('[0 - (none)]: ') or 0)
+            # if it is a known series, add it to filepattern for that series, otherwise make a new series
+            # first, try to guess the pattern:
+            for tag in sorted(filepatterns.keys(), key=len, reverse=True):
+                regex = re.compile(filepatterns[tag])
+                match = regex.search(fpath)
+                if match:
+                    span = match.span() # TODO this relies on first group being "outer", enforce that
+                    prefill='^{0}{1}{2}$'.format(fpath[:span[0]], tag, fpath[span[1]:])
+                    pattern = rlinput(prompt="", prefill=prefill)
+                    if len(pattern)>0:
+                        break # we've found it
+            else:
+                # doesn't match any of our known tags, user will have to create one and corresponding regex
+                # (might be an exact-match, not a pattern. Or an "ignore this file")
+                raise Exception("creating new tags not yet implemented")
+            # if a known series was selected, add this filepattern to it
+            if nb == 0:
+                # a new series:
+                proposed_name = '{}_logfile'.format(fpath[:span[0]])
+                series_name = rlinput("Name for this LogSeries? ", prefill=proposed_name)
+                # TODO make sure series_name not already in use in mydict ns
+                if mydict is None:
+                    mydict = rdflib.ConjunctiveGraph()
+                    mydict.namespace_manager.bind("mydict", mydict_ns)
+                mydict.add( (mydict_ns[series_name], rdf.type, logset.LogSeries) )
+                series_info[series_name] = LogSeries(series_name, mydict_ns[series_name])
+                # TODO need to work out what type of file it is and set logFormat and logFormatInfo
+                # and mediatype
+                # also a comment is worthwhile
+                # something like:
+                # for h in handlers:
+                #    h.test_if_this_file_matches_this_handler
+                #mydict.add( (mydict_ns[series_name], logset.logFormat, 
+            else:
+                series_name = series_keys[nb]
+            series_info[series_name].fmtInfo['filepattern']=pattern 
+
+            # in either case, add the new pattern to the totdo list and break
+            #actualpattern = ...
+            #todo.add(actualpattern) # or something...
+            break # out of remaining loop
+        else:
+            todo.remove("") # breaks out of  while loop
+
+        # only remove the final "" from todo pattern list when no more patterns to be found
         #break
 
     out = newindex.serialize(format='n3').decode('ascii')
