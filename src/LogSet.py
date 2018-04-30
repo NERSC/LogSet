@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+import logging
 import sys
-print(sys.version_info)
+logging.debug(sys.version_info)
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
-    raise Exception("Requires python 3.5+ .. try:\n  module load python/3.6-anaconda-4.4")
+    raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
 
 # each new ConcreteLog in the LogSet needs a unique iri:
 import random, string
@@ -11,30 +12,32 @@ def ran_str(length: int) -> str:
     " produce a string of random letters, of a given length "
     return ''.join([random.choice(string.ascii_lowercase) for i in range(length)])
 
-@prefix : <index#> .
-:
-    a logset:LogSet ;
-    logset:subject nersc:cori ;
-    dct:title "Sample NERSC logs" ;
-    rdfs:label "nersc-logs-001" ;   # is this necessary/useful?
-    dct:description "a partial sample of cori log data for testing logset tools"  ;
-    dct:publisher nersc:nersc ;
-    dct:contactPoint [ a vcard:Individual ;
-                       vcard:fn "Steve Leak" ;
-                       vcard:email "sleak@lbl.gov" ;
-                     ] ;
-    dct:temporal [ a dct:PeriodOfTime ;
-                  logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ;
-                  logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
-                 ] ;
-    dcat:distribution
-        :console-20170906,
-        :console-20170907,
-        :consumer-20170906,
-        :consumer-20170907,
-        :messages-20170906,
-        :messages-20170907 ;
-    .
+# sample entry looks like:
+#@prefix : <index#> .
+#:
+#    a logset:LogSet ;
+#    logset:subject nersc:cori ;
+#    dct:title "Sample NERSC logs" ;
+#    rdfs:label "nersc-logs-001" ;   # is this necessary/useful?
+#    dct:description "a partial sample of cori log data for testing logset tools"  ;
+#    dct:publisher nersc:nersc ;
+#    dcat:landingPage <file://cori.nersc.gov//global/cscratch1/sd/sleak/p0-20170906t151820/>
+#    dct:contactPoint [ a vcard:Individual ;
+#                       vcard:fn "Steve Leak" ;
+#                       vcard:email "sleak@lbl.gov" ;
+#                     ] ;
+#    dct:temporal [ a dct:PeriodOfTime ;
+#                  logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ;
+#                  logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
+#                 ] ;
+#    dcat:distribution
+#        :console-20170906,
+#        :console-20170907,
+#        :consumer-20170906,
+#        :consumer-20170907,
+#        :messages-20170906,
+#        :messages-20170907 ;
+#    .
 
 import rdflib
 import LogsGraph
@@ -48,7 +51,10 @@ class LogSet:
                    'contactPiont': 'dct:contactPoint',   # rdf uri (vcard:kind)
                    'distribution': 'dcat:distribution' } # rdf uri
 
-    def __init__(self, uri: str, **properties: rdflib.Term.Identifier): 
+    # FIXME: dcat:landingpage, for eg, isn't a valid key in properties,
+    # but a LogSet might be created with such things. How to best 
+    # handle that?
+    def __init__(self, uri: str, **properties: rdflib.term.Identifier): 
         """ eg: uri = http://example.org/myindex#myindex
             corresponds to a file like http://example.org/myindex.ttl
             with: 
@@ -76,54 +82,54 @@ class LogSet:
         remaining = provided_properties - well_known_properties
         self.other_properties = { p: properties[p] for p in remaining }
 
-    def triples(self):
-        """ generate a set of RDF triples describing this LogSet """
-        # FIXME ugh this is kinda clumsy:
-        nspaces = getattr(self, _namespaces, None):
-        if nspaces is None:
-            nspaces = {}
-            for attr in self.attributes:
-                prefix,sep,item = attr.partition(':')
-                if prefix not in nspaces:
-                    nspaces[prefix] = LogsGraph.getns(prefix)
-            #for prefix in ('rdf','rdfs','logset'):
-            #     nspaces[prefix] = LogsGraph.getns(prefix)
-            self._namespaces = nspaces
-
-        rdf = LogsGraph.getns('rdf')
-        rdfs = LogsGraph.getns('rdfs')
-        logset = LogsGraph.getns('logset')
-        yield (self.uri, rdf.type, logset.LogSet)
-        yield (self.uri, rdfs.label, rdflib.Literal(self.label))
-        # FIXME ugh is value sane? what abount self.other_properties?
-        for attr in self.attributes:
-            value = getattr(self,attr,None) or continue
-            prefix,sep,item =attr.partition(':')
-            ns = nspaces[prefix]
-            yield (self.uri, ns[item], value)  
-
-
-    # some derived attributes:
-    @property
-    def startDate(self):
-        # find and return earliest startDate in concrete logs
-        return None # TODO
-
-    @property
-    def endDate(self):
-        # find and return latest endDate in concrete logs
-        return None # TODO
-
-    def subjects(self):
-        # iterate over set of subjects described by concrete logs
-        pass
-
-    import UI
-    def define(self, **kwargs):
-        # using current attributes and any passed kwargs as a starting
-        # point, fill out the essential properties of this logset
-        
-        pass 
+#    def triples(self):
+#        """ generate a set of RDF triples describing this LogSet """
+#        # FIXME ugh this is kinda clumsy:
+#        nspaces = getattr(self, _namespaces, None):
+#        if nspaces is None:
+#            nspaces = {}
+#            for attr in self.attributes:
+#                prefix,sep,item = attr.partition(':')
+#                if prefix not in nspaces:
+#                    nspaces[prefix] = LogsGraph.getns(prefix)
+#            #for prefix in ('rdf','rdfs','logset'):
+#            #     nspaces[prefix] = LogsGraph.getns(prefix)
+#            self._namespaces = nspaces
+#
+#        rdf = LogsGraph.getns('rdf')
+#        rdfs = LogsGraph.getns('rdfs')
+#        logset = LogsGraph.getns('logset')
+#        yield (self.uri, rdf.type, logset.LogSet)
+#        yield (self.uri, rdfs.label, rdflib.Literal(self.label))
+#        # FIXME ugh is value sane? what abount self.other_properties?
+#        for attr in self.attributes:
+#            value = getattr(self,attr,None) or continue
+#            prefix,sep,item =attr.partition(':')
+#            ns = nspaces[prefix]
+#            yield (self.uri, ns[item], value)  
+#
+#
+#    # some derived attributes:
+#    @property
+#    def startDate(self):
+#        # find and return earliest startDate in concrete logs
+#        return None # TODO
+#
+#    @property
+#    def endDate(self):
+#        # find and return latest endDate in concrete logs
+#        return None # TODO
+#
+#    def subjects(self):
+#        # iterate over set of subjects described by concrete logs
+#        pass
+#
+#    import UI
+#    def define(self, **kwargs):
+#        # using current attributes and any passed kwargs as a starting
+#        # point, fill out the essential properties of this logset
+#        
+#        pass 
 
 
 

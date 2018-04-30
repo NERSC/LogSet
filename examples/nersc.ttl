@@ -1,7 +1,7 @@
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix dct: <http://purl.org/dc/terms/> .
-@prefix adms: <http://www.w3.org/ns/adms#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 #@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#> .
 @prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
@@ -19,21 +19,21 @@
 
 
 :cori
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "cori" ;
     dct:description "cori is the 12000-node Cray XC40 at NERSC" ;
     dcat:landingPage <http://www.nersc.gov/systems/cori/> ;
     .
 
 :edison
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "edison" ;
     dct:description "edison is the 6000-node Cray XC30 at NERSC" ;
     dcat:landingPage <http://www.nersc.gov/systems/edison/> ;
     .
 
 :global_home
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "global home" ;
     dct:description "the $HOME filesystem shared by all NERSC systems" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/global-home/> ;
@@ -43,7 +43,7 @@
     .
 
 :escratch1
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "edison scratch1" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
@@ -52,7 +52,7 @@
     .
     
 :escratch3
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "edison scratch2" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
@@ -61,7 +61,7 @@
     .
     
 :escratch3
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "edison scratch3" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
@@ -70,7 +70,7 @@
     .
     
 :cscratch1
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "edison scratch1" ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
@@ -80,20 +80,20 @@
     .
     
 :cori_slurm
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "cori slurm" ;
     dct:description "the batch system instance managing jobs on cori" ;
     dcat:landingPage <http://www.nersc.gov/users/computational-systems/cori/running-jobs/> ;
-    logset:affects 
+    logset:partOf 
         :cori ;
     .
     
 :edison_slurm
-    a adms:Asset ;
+    a logset:Subject ;
     dct:title "edison slurm" ;
     dct:description "the batch system instance managing jobs on edison" ;
     dcat:landingPage <http://www.nersc.gov/users/computational-systems/edison/running-jobs/> ;
-    logset:affects 
+    logset:partOf 
         :edison ;
     .
     

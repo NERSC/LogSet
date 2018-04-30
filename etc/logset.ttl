@@ -83,15 +83,15 @@
                  ''' ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
-        owl:onProperty :logFormatType ;  # must specify a format
-        owl:cardinality 1 ;
-    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
         owl:onProperty :infoType ;  
         # any LogSeries must have *some* type of entries, and some might have 
         # several, eg a slurm_instance has job_records and also node_state
         owl:minCardinality 1 ; 
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :logFormatType ;  # must specify a format
+        owl:cardinality 1 ;
     ] ;
     .
 
@@ -109,6 +109,11 @@
                      dictionary and to correspond to a handler class for logs in
                      that format
                  ''' ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dcat:mediaType ;  # may specify a mime type
+        owl:maxCardinality 1 ;
+    ] ;
     .
 
 :InfoType
@@ -122,7 +127,7 @@
 
 :Subject
     a owl:Class ;
-    rdfs:subClassOf skos:Concept ;
+    #rdfs:subClassOf skos:Concept ;
     rdfs:comment ''' A thing that a ConcreteLog is about, eg a system or 
                      subsystem, or even a specific job 
                  ''' ;
@@ -169,7 +174,7 @@
 
 :subject 
     a owl:ObjectProperty ;
-    rdfs:comment ''' The Asset whose state this LogSet or ConcreteLog describes.
+    rdfs:comment ''' The entity whose state this LogSet or ConcreteLog describes.
                      (eg a console-log might be for nersc:edison)
                  ''' ;
     rdfs:domain :ConcreteLog ;
@@ -188,17 +193,23 @@
     rdfs:range rdfs:Literal ;
     .
 
-# skos:broader and skos:narrower allow a kind of hierarchy, which works in
-# the sense that, eg "cori" is broader that "cori logins" .. but doesn't 
-# neatly describe that, eg, "cori" is affected by the condition of "ngf".
-# We'll extend the model a little to support "affects" relationships 
-# between Subjects:
+
 :affects
     a owl:ObjectProperty ;
     rdfs:comment ''' Components in an HPC center are not a strict hierarchy,
                      eg a filesystem might be shared by multiple systems. 
                      So we connect related systems and subsystems with an 
                      "affects" relationship
+                 ''' ;
+    rdfs:domain :Subject ;
+    rdfs:range :Subject ;
+    .
+
+# is this valid? 
+:partOf
+    a owl:ObjectProperty ;
+    rdfs:subClassOf :affects ;
+    rdfs:comment ''' isubclass of affects for things that really are part of a strict hierarchy 
                  ''' ;
     rdfs:domain :Subject ;
     rdfs:range :Subject ;

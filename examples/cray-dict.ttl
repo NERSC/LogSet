@@ -55,7 +55,7 @@
     a logset:LogSeries ;
     logset:infoType :aries_status_snapshots ;
     logset:logFormatType dict:filePerTimepoint ;
-    logset:logFormatInfo "filepattern=<system:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
+    logset:logFormatInfo "filepattern=<label:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
     #logset:logFormatInfo "mediatype=application/x-xz"
     # will need a specific handler I think, eg:
     #logset:logFormatInfo "handler=AriesLcbStatusHandler"

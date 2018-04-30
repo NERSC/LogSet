@@ -9,70 +9,32 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 5:
 
 sys.path.append('/global/homes/s/sleak/Monitoring/Resilience/LogSet/src')
 
-
 import argparse
+
+from collections import namedtuple
+ArgDetails = namedtuple('ArgDetails', 'short, long, nargs, required, help, example')
+
 from abc import ABC
 class Command(ABC):
-    #command = ''
-    #usage = ''
+    command = ''
+    usage = ''
+    _args = []
     def __init__(self, subparsers):
-        self.parser = subparsers.add_parser(self.command, help=self.usage)
+        self.parser = subparsers.add_parser(self.command, help=self.usage, epilog=self.epilog())
+        for arg in self._args:
+            self.parser.add_argument(arg.short, arg.long, arg.nargs, arg,required, arg.help)
         self.parser.set_defaults(func=self.execute)
+
+    @classmethod
+    def epilog(cls):
+        """ return some epilog help for this command """
+        txt  = "{0} {1}".format(sys.argv[0], self.command)
+        for arg in self._args:
+            txt += ' {}'.format(arg.example)
+        return txt
 
     def execute(self, args):
         print("executing {0} with args {1}".format(self.__class__.__name__, str(args)))
-
-class CatalogCommand(Command):
-    command = "catalog"
-    usage = "catalog <directory>"
-
-    def __init__(self, subparsers):
-        super().__init__(subparsers)
-        h = "url of catalog to add new index to (or create if necessary)"
-        self.parser.add_argument('-c', '--catalog', nargs=1, required=True, help=h)
-        h = "namespace for the new index"
-        self.parser.add_argument('-n', '--namespace', nargs=1, required=True, help=h)
-        h = "a label for the new index (gets used in filename too)"
-        self.parser.add_argument('-l', '--label', nargs=1, required=True, help=h)
-        h = "path to scan for logfiles to index"
-        self.parser.add_argument('-p', '--path', nargs=1, required=True, help=h)
-
-    def execute(self, args):
-        catalog = args.catalog[0]
-        path = args.path[0]
-        label = args.label[0]
-        ns = args.namespace[0]
-
-        # maybe adding the index should be last, user is more prepared to 
-        # answer questions about it
-        newindex = LogSet.LogSet(ns+label)
-        for triple in newindex.tripes():
-            LogsGraph.graph.add(triple)
-
-        # if we do one logseries at a time, then the ordering can be 
-        # handled within the logseries (and assume that nothing has a
-        # catchall pattern?)
-        # filename patterns:
-        todo = set([p for p in Logseries.known_filename_patterns()])
-        done = set()
-        # (relative_path, filename) pairs:
-        baselen = len(path)+1
-        remaining = set([(base[baselen:],f) for base, d, files in os.walk(path) for f in files])
-
-        while len(todo) > 0:
-            for pattern in sorted(todo, key=len, reverse=True):
-                logseries = LogSeries.logseries_for_filename_pattern(pattern)
-                matching = logseries.candiates(remaining):
-                for f in matching:
-                    log = ConcreteLog(f, logseries,...)
-                    log.add_to_graph()
-                remaining -= matching
-                done.add(pattern)
-                todo.remove(pattern)
-            # next, with remaining files, find a suitable logseries (or define one)
-            # .. and add it to todo then return to that loop
-            # might sometimes need to defer/skip a file 
-
 
 class AvailCommand(Command):
     """ avail: Show what types of logs are available/cataloged, for what systems
@@ -92,21 +54,86 @@ class FindCommand(Command):
         super().__init__(subparsers)
     
 
+from LogSeries import FileInfo
+
+class CatalogCommand(Command):
+    command = "catalog"
+    usage = "catalog <directory>"
+
+    _args = [ ArgDetails(
+                '-c', '--catalog', 1, False, "url of catalog to update", 
+                "-c ./example-cat.ttl" ),
+              ArgDetails(
+                '-n', '--namespace', 1, True, "namespace for this new dataset",
+                "-n http://example.org/myindex#" ),
+              ArgDetails(
+                '-d', '--dir', 1, True, "directory to scan for log files to catalog",
+                "-d /global/cscratch1/sd/sleak/Resilience/corismw-sample-p0/p0-20170906t151820")
+            ]
+        
+    def execute(self, args):
+        catalog = args.catalog[0]
+        topdir = args.dir[0]
+        ns = rdflib.Namespace(args.namespace[0])
+        urls = args.url
+
+        graph = LogsGraph.construct(catalog, *urls, spider=True)
+        
+        # maybe adding the index should be last, user is more prepared to 
+        # answer questions about it
+        newindex = LogSet.LogSet(ns+label)
+        # newindex.add_to_graph()
+
+        # known logseries to match against:
+        todo = set([s for s in Logseries.logseries()])
+        done = set()
+        # files to catalog:
+        baselen = len(topdir)+1
+        remaining = set([ FileInfo(topdir, path[baselen:], f) 
+                          for path, d, files in os.walk(path) for f in files ])
+
+        while len(todo) > 0:
+            for logseries in todo:
+                matching = logseries.candidates_files(remaining)
+                for f in matching:
+                    log = ConcreteLog(f, logseries)
+                
+
+
+
+
+        todo = set([p for p in Logseries.known_filename_patterns()])
+        done = set()
+
+        while len(todo) > 0:
+            for pattern in sorted(todo, key=len, reverse=True):
+                logseries = LogSeries.find_logseries(pattern=pattern)
+                matching = logseries.candidates(remaining):
+                for f in matching:
+                    log = ConcreteLog(f, logseries,...)
+                    log.add_to_graph()
+                remaining -= matching
+                done.add(pattern)
+                todo.remove(pattern)
+            # next, with remaining files, find a suitable logseries (or define one)
+            # .. and add it to todo then return to that loop
+            # might sometimes need to defer/skip a file 
+
+        newindex.add_to_graph()
+
+
 
 if __name__ == '__main__':
-    eg_dir = "/global/cscratch1/sd/sleak/Resilience/corismw-sample-p0/p0-20170906t151820"
-    eg_ns  = "http://example.org/myindex#"
-    eg_cat = "./example-cat.ttl"
-    eg_label = "newindex"
-    desc  = "\nFor example:"
-    desc += "{0} catalog -d {1} -n {2} -c {3} -l {4}".format(sys.argv[0], 
-            eg_dir, eg_ns, eg_cat, eg_label)
+    example = CatalogCommand.epilog() + 
+              " -u file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/examples/nersc.ttl" +
+              " -u file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/examples/cray-dict.ttl" +
     if len(sys.argv)==1:
         print(desc)
         sys.exit()
-    parser = argparse.ArgumentParser(desc)
+
+    parser = argparse.ArgumentParser(desc, epilog=example)
     parser.add_argument('-v','--verbose', action='count')
-    parser.add_argument('-u', '--urls', nargs='*')
+    parser.add_argument('-u', '--url', nargs=1, action='append')
     parser.set_defaults(func=help)
     subparsers = parser.add_subparsers()
     for cmd in CatalogCommand,FindCommand:

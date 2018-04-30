@@ -63,4 +63,10 @@
     logset:regex "(?P<system>[a-z][a-z0-9]+)" ;
     .
 
+:label
+    a logset:FilenamePattern ;
+    logset:tag "<label:>" ; 
+    logset:regex "(?P<label>[a-z][a-z0-9]+)" ;
+    .
+
 
