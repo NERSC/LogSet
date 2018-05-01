@@ -158,14 +158,13 @@
         rdf:type owl:Restriction ;
         owl:onProperty :subject ; 
           # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
+        owl:minCardinality 1 ;
     ] ;
     rdfs:comment ''' An actual, specific log, eg a File or database or web 
                      service, with knowledge of how to handle this type of 
                      log in this format. Eg, the actual files in a p0 package
                      are ConcreteLog objects.
                      Should have either a dcat:downloadURL or a dcat:accessURL.
-                     May have a logset:subject (assumed from LogSet if not) and
-                     a logset:specificSubjectLabel
                  ''' ;
     .
 
@@ -215,6 +214,15 @@
     rdfs:range :Subject ;
     .
 
+:relevantLogSeries
+    a owl:ObjectProperty ;
+    rdfs:comment ''' to help in locating/defining subjects for logs, having a list of known 
+                     LogSeries that are relevant to a subject might help guide the cataloger
+                     to list subjects sensibly
+                 ''';
+    rdfs:domain :Subject ;
+    rdfs:range :LogSeries ;
+    .
 
 # make dct:temporal amenable to sparql queries, following the pattern used by
 # DDI Alliance and OpenGeoSpatial.org of defining startDate and endDate properties

@@ -6,17 +6,10 @@ logging.debug(sys.version_info)
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
     raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
 
-# each new ConcreteLog in the LogSet needs a unique iri:
-import random, string
-def ran_str(length: int) -> str:
-    " produce a string of random letters, of a given length "
-    return ''.join([random.choice(string.ascii_lowercase) for i in range(length)])
-
 # sample entry looks like:
 #@prefix : <index#> .
 #:
 #    a logset:LogSet ;
-#    logset:subject nersc:cori ;
 #    dct:title "Sample NERSC logs" ;
 #    rdfs:label "nersc-logs-001" ;   # is this necessary/useful?
 #    dct:description "a partial sample of cori log data for testing logset tools"  ;
@@ -26,10 +19,6 @@ def ran_str(length: int) -> str:
 #                       vcard:fn "Steve Leak" ;
 #                       vcard:email "sleak@lbl.gov" ;
 #                     ] ;
-#    dct:temporal [ a dct:PeriodOfTime ;
-#                  logset:startDate "2017-09-06T15:18:20.827169-07:00"^^xsd:dateTime ;
-#                  logset:endDate "2017-09-07T15:22:42.809617-07:00"^^xsd:dateTime ;
-#                 ] ;
 #    dcat:distribution
 #        :console-20170906,
 #        :console-20170907,
@@ -41,46 +30,95 @@ def ran_str(length: int) -> str:
 
 import rdflib
 import LogsGraph
-class LogSet:
 
-    # dict mapping object attributes to RDF predicates:
-    # TODO might need utility classes to handle rdf uris?
-    attributes = { 'title':        'dct:title',          # rdf literal string
-                   'description':  'dct:description',    # rdf literal string
-                   'publisher':    'dct:publisher',      # rdf uri (foaf:agent)
-                   'contactPiont': 'dct:contactPoint',   # rdf uri (vcard:kind)
-                   'distribution': 'dcat:distribution' } # rdf uri
+from LogClass import LogClass
+class LogSet(LogClass):
 
-    # FIXME: dcat:landingpage, for eg, isn't a valid key in properties,
-    # but a LogSet might be created with such things. How to best 
-    # handle that?
-    def __init__(self, uri: str, **properties: rdflib.term.Identifier): 
-        """ eg: uri = http://example.org/myindex#myindex
-            corresponds to a file like http://example.org/myindex.ttl
-            with: 
-                @prefix myindex: http://example.org/myindex#
-                myindex:myindex
-                    a logset:LogSet ;
-                    rdfs:label "myindex" ;
-                    dcat:distribution myindex:concrete-file-1 .
-                myindex:concrete-file-1
-                    a logset:ConcreteLog ;
-            **properties allows a LogSet to be instantiated from a sparql query
-        """
-        self.uri = uri
-        ns,sep,label = uri.rpartition('#')
-        self.namespace = rdflib.Namespace(ns+sep)
-        if label == '':
-            label = ran_str(8)
-        self.label = label
-        self.prefix = label
+    rdf_class = "logset:LogSet"
 
-        well_known_properties = set(self.attributes.keys())
-        provided_properties = set(properties.keys())
-        for p in well_known_properties & provided_properties:
-            setattr(self, p, properties[p])
-        remaining = provided_properties - well_known_properties
-        self.other_properties = { p: properties[p] for p in remaining }
+    # each class should define this map of predicate to attribute name (eg:
+    #    "dct:title": "title"
+    predicates = { "dct:title":         'title',        # string
+                   "dct:description":   'description',  # string
+                   "dct:publisher":     'publisher',    # uri (foaf:Agent)
+                   "dct:contactPoint":  'contactpoint', # uri or blank node (vcard)
+                   "dcat:landingPage":  'landingpage',  # uri
+                   "dcat:distribution": 'concretelogs'  # list of uris
+                 }
+
+    def _init(self):
+        pass
+
+    def add(self, fileinfo: FileInfo, logseries: LogSeries, subject: Subject):
+#        # make a concretelog and add it to the graph
+#        # what properties do we know?
+#        props = {}
+#        props["logset:isInstanceOf"] = logseries.uri
+#        # need temporal (blank node) and subject
+#        # temporal comes from inspecting the log
+#        # subject .. might come from inspecting the log?
+#        concretelog = ConcreteLog(namespace=self.namespace)
+#        concretelog.inspect()
+#        concretelog.add_to_graph()
+
+
+#class LogSet:
+#
+#    # dict mapping object attributes to RDF predicates:
+#    # TODO might need utility classes to handle rdf uris?
+#    attributes = { 'title':        'dct:title',          # rdf literal string
+#                   'description':  'dct:description',    # rdf literal string
+#                   'publisher':    'dct:publisher',      # rdf uri (foaf:agent)
+#                   'contactPiont': 'dct:contactPoint',   # rdf uri (vcard:kind)
+#                   'distribution': 'dcat:distribution' } # rdf uri
+#
+#    # FIXME: dcat:landingpage, for eg, isn't a valid key in properties,
+#    # but a LogSet might be created with such things. How to best 
+#    # handle that?
+#    def __init__(self, uri: str, **properties: rdflib.term.Identifier): 
+#        """ eg: uri = http://example.org/myindex#myindex
+#            corresponds to a file like http://example.org/myindex.ttl
+#            with: 
+#                @prefix myindex: http://example.org/myindex#
+#                myindex:myindex
+#                    a logset:LogSet ;
+#                    rdfs:label "myindex" ;
+#                    dcat:distribution myindex:concrete-file-1 .
+#                myindex:concrete-file-1
+#                    a logset:ConcreteLog ;
+#            **properties allows a LogSet to be instantiated from a sparql query
+#        """
+#        self.uri = uri
+#        ns,sep,label = uri.rpartition('#')
+#        self.namespace = rdflib.Namespace(ns+sep)
+#        if label == '':
+#            label = ran_str(8)
+#        self.label = label
+#        self.prefix = label
+#
+#        well_known_properties = set(self.attributes.keys())
+#        provided_properties = set(properties.keys())
+#        for p in well_known_properties & provided_properties:
+#            setattr(self, p, properties[p])
+#        remaining = provided_properties - well_known_properties
+#        self.other_properties = { p: properties[p] for p in remaining }
+#
+#    # how do we get the subject? either it comes from user (passed through),
+#    # or it can be inferred from the log itself, either via the filepattern
+#    # (from the logseries) or by inspecting the log
+#    # this goes for specificSubjectPattern too
+#    def add(self, fileinfo: FileInfo, logseries: LogSeries, subject: Subject):
+#        # make a concretelog and add it to the graph
+#        # what properties do we know?
+#        props = {}
+#        props["logset:isInstanceOf"] = logseries.uri
+#        # need temporal (blank node) and subject
+#        # temporal comes from inspecting the log
+#        # subject .. might come from inspecting the log?
+#        concretelog = ConcreteLog(namespace=self.namespace)
+#        concretelog.inspect()
+#        concretelog.add_to_graph()
+#
 
 #    def triples(self):
 #        """ generate a set of RDF triples describing this LogSet """

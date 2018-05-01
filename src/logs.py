@@ -92,13 +92,17 @@ class CatalogCommand(Command):
         remaining = set([ FileInfo(topdir, path[baselen:], f) 
                           for path, d, files in os.walk(path) for f in files ])
 
+        # I think we need to ask the user at each logseries 
+        # which subjects this series or dataset is about
         while len(todo) > 0:
             for logseries in todo:
-                matching = logseries.candidates_files(remaining)
+                matching,remaining = logseries.candidates(remaining)
                 for f in matching:
-                    log = ConcreteLog(f, logseries)
-                
-
+                    # I think newindex.add should do the finding-out-the-subject
+                    newindex.add(f, logseries)
+                done.add(logseries)
+                todo.remove(logseries)
+            
 
 
 

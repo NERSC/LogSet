@@ -34,8 +34,11 @@ FileInfoSet = Set[FileOnfo]
 # (eg for FilePerTimePoint)
 SplitFileInfoSet = Tuple[FileInfoSet, FileInfoSet] # candiates, remaining
 
+from LogFormatType import LogFormatType
 from LogClass import LogClass
 class LogSeries(LogClass):
+
+    rdf_class = "logset:LogSeries"
 
     # each class should define this map of predicate to attribute name (eg:
     #    "dct:title": "title"
@@ -44,11 +47,25 @@ class LogSeries(LogClass):
                    "logset:logFormatInfo": "fmtinfo"
                  }
 
-    def __init__(self, uri, properties):
+    # logseries (or perhaps, the specific LogFormatTypes) should have a 
+    # list of logFormatInfo keys that it knows what to do with
+    #
+    # one type of formatinfo is how to get the subject:
+    # logFormatInfo "subjectIdentifier=filepattern"
+    # logFormatInfo "subjectIdentifier=ask:series"
+    # logFormatInfo "subjectIdentifier=ask:log"
+    # logFormatInfo "subjectIdentifier=inspect"
+    # 
+    # and specificSubjectPattern?
+    # this is what gets set if the identified subject is too fine-grained to
+    # be a node in the graph (eg a single link). Probably this mostly won't 
+    # get used...
+
+    def _init(self):
         self._fmtinfo:      List[str]     = None
         self._fmtinfo_dict: Dict[str,str] = None
         self._filepatterns: Set[str]      = None
-        super().__init__(uri, properties)
+        self._logfmt_type:  LogFormatType = None
 
     def _populate_fmtinfo(self):
         # used internally by getters for fmtinfo and fmtinfo_dict.
@@ -85,6 +102,17 @@ class LogSeries(LogClass):
             self._populate_fmtinfo()
         return self._fmtinfo_dict
 
+    @property
+    def logfmt_type(self) -> str:
+        if self._logfmt_type is None:
+            subj = rdflib.term.URIRef(self.uri)
+            logset = LogsGraph.getns('logset')
+            pred = logset['logFormatType']
+            # there should be exacly 1 fmttype:
+            self._logfmt_type = str(next(LogsGraph.graph.objects(subj, pred), None))
+        return self._logfmt_type
+
+
     def candidates(self, files: FileInfoSet) -> SplitFileInfoSet:
         if self._filepatterns is None:
             # find filepatterns in the fmtinfo_dict and translate the 
@@ -106,7 +134,11 @@ class LogSeries(LogClass):
         # TODO the following chunk should be handled by passing to the logFormatType
         # object to further filter the candidate list according to what it knows 
         # (ie, the knowledge is in the LogFormatType/handler objects not the 
-        # LogSereis object)
+        # LogSeries object)
+        # handler = LogFormatType.handler(self.logfmt_type)
+        # mine, not_mine = handler.filter_candidates(candidates)
+        # remaining += not_mine
+        # return (mine, remaining)
         #
         # check the mimetype, if it is inode/directory then the candidates are 
         # the directories with files matching this, but the matching files 
@@ -159,7 +191,7 @@ def known_logseries() -> Generator[LogSeries, None, None]:
         fields = [ None, "logset:infoType", "logset:logFormatType", "dcat:mediaType" ]
         for row in LogsGraph.graph.query(q):
             uri = str(row[0])
-            props = { fields[i]: row[i] for i in range(1,len(row)) }
+            props = { fields[i]: str(row[i]) for i in range(1,len(row)) }
             logseries = LogSeries(uri=uri, properties=props)
             _known_logseries[logseries.name] = logseries
     for name in _known_logseries:
@@ -171,7 +203,7 @@ def pattern_for_tag(tag: str) -> str:
     """ return the regex pattern corresponding to a tag """
     global _pattern_for_tag
     if _pattern_for_tag is None:
-        # TODO: anytime a new tag is recdorded, we need to add it!
+        # TODO: anytime a new tag is recorded, we need to add it!
         q = ''' SELECT ?tag ?regex_pattern WHERE {
                  ?id a logset:FilenamePattern .
                  ?id logset:tag ?tag .
