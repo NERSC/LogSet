@@ -2,9 +2,11 @@
 @prefix dct: <http://purl.org/dc/terms/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 #@prefix logset: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/logset#> .
 @prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
+@prefix ddict: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/ddict#> .
 
 # (comment out base to use local cwd):
 #@base <https://raw.githubusercontent.com/NERSC/LogSet/master/> .
@@ -17,24 +19,33 @@
     foaf:page <http://www.nersc.gov/> ;
     .
 
+:nersc_crt
+    a logset:Subject ;
+    rdfs:label "nersc" ;
+    skos:note "nersc the facility (as distinct from NERSC the organization)" ;
+    .
 
 :cori
     a logset:Subject ;
-    dct:title "cori" ;
+    rdfs:label "cori" ;
+    logset:isSpecific ddict:cluster ;
     dct:description "cori is the 12000-node Cray XC40 at NERSC" ;
     dcat:landingPage <http://www.nersc.gov/systems/cori/> ;
     .
 
 :edison
     a logset:Subject ;
-    dct:title "edison" ;
+    rdfs:label "edison" ;
+    logset:isSpecific ddict:cluster ;
     dct:description "edison is the 6000-node Cray XC30 at NERSC" ;
     dcat:landingPage <http://www.nersc.gov/systems/edison/> ;
     .
 
 :global_home
     a logset:Subject ;
-    dct:title "global home" ;
+    rdfs:label "global home" ;
+    logset:isSpecific ddict:home_storage ;
+    logset:isSpecific ddict:gpfs_filesystem ; 
     dct:description "the $HOME filesystem shared by all NERSC systems" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/global-home/> ;
     logset:affects 
@@ -44,44 +55,50 @@
 
 :escratch1
     a logset:Subject ;
-    dct:title "edison scratch1" ;
+    rdfs:label "edison scratch1" ;
+    logset:isSpecific ddict:work_filesystem ;
+    logset:isSpecific ddict:lustre_filesystem ;
+    logset:partOf :edison ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
-    logset:affects 
-        :edison ;
+    .
+    
+:escratch2
+    a logset:Subject ;
+    rdfs:label "edison scratch2" ;
+    logset:isSpecific ddict:work_filesystem ;
+    logset:isSpecific ddict:lustre_filesystem ;
+    logset:partOf :edison ;
+    dct:description "a lustre filesystem attached to edison" ;
+    dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
     .
     
 :escratch3
     a logset:Subject ;
-    dct:title "edison scratch2" ;
+    rdfs:label "edison scratch3" ;
+    logset:isSpecific ddict:work_filesystem ;
+    logset:isSpecific ddict:lustre_filesystem ;
+    logset:partOf :edison ;
     dct:description "a lustre filesystem attached to edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
-    logset:affects 
-        :edison ;
-    .
-    
-:escratch3
-    a logset:Subject ;
-    dct:title "edison scratch3" ;
-    dct:description "a lustre filesystem attached to edison" ;
-    dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
-    logset:affects 
-        :edison ;
     .
     
 :cscratch1
     a logset:Subject ;
-    dct:title "edison scratch1" ;
-    dct:description "a lustre filesystem attached to edison" ;
+    rdfs:label "cori scratch1" ;
+    logset:isSpecific ddict:work_filesystem ;
+    logset:isSpecific ddict:lustre_filesystem ;
+    logset:partOf :cori ;
+    dct:description "a lustre filesystem attached to cori and and also mounted on edison" ;
     dcat:landingPage <http://www.nersc.gov/users/storage-and-file-systems/file-systems/> ;
     logset:affects 
-        :cori,
         :edison ;
     .
     
 :cori_slurm
     a logset:Subject ;
-    dct:title "cori slurm" ;
+    rdfs:label "cori slurm" ;
+    logset:isSpecific ddict:slurm ;
     dct:description "the batch system instance managing jobs on cori" ;
     dcat:landingPage <http://www.nersc.gov/users/computational-systems/cori/running-jobs/> ;
     logset:partOf 
@@ -90,12 +107,21 @@
     
 :edison_slurm
     a logset:Subject ;
-    dct:title "edison slurm" ;
+    rdfs:label "edison slurm" ;
+    logset:isSpecific ddict:slurm ;
     dct:description "the batch system instance managing jobs on edison" ;
     dcat:landingPage <http://www.nersc.gov/users/computational-systems/edison/running-jobs/> ;
     logset:partOf 
         :edison ;
     .
     
+:cori_hsn
+    a logset:Subject ;
+    rdfs:label "cori hsn" ;
+    logset:isSpecific ddict:aries ;
+    dct:description "cori's aries hsn" ;
+    logset:partOf 
+        :cori ;
+    .
 
 

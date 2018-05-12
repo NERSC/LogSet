@@ -1,0 +1,277 @@
+# A sample/starting data dictionary
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+# declare myself and set a prefix:
+#@base <https://raw.githubusercontent.com/NERSC/LogSet/master/etc> .
+@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/> .
+@prefix logset: <logset#> .
+@prefix : <ddict#> .
+
+:files
+    a logset:dataSource ;
+    rdfs:label "files" ;
+    dct:description ''' the data is in the form of files - not necessarily
+                        local, but as distinct from, eg, the output of 
+                        some command.
+                        The accessURL should indicate where the files can
+                        be gotten from, and downloadURL may be a relative
+                        path from the accessURL
+                    ''' ;
+    .
+
+:localCommands
+    a logset:dataSource ;
+    rdfs:label "local commands" ;
+    dct:description ''' the data is produced by running commands on some 
+                        system. The accessURL should give some hint about which system
+                    ''' ;
+    .
+
+:webAPI
+    a logset:dataSource ;
+    rdfs:label "web API" ;
+    dct:description ''' the data is produced by calling a web API
+                    ''' ;
+    .
+
+:timeStampedLogFile   
+    a logset:LogFormatType ; 
+    logset:dataSource :files ;
+    dcat:mediaType "text/plain" ;
+    .
+
+:sqlite3              
+    a logset:LogFormatType ; 
+    logset:dataSource :files ;
+    dcat:mediaType "application/x-sqlite3" ;
+    .
+
+:filePerTimepoint     
+    a logset:LogFormatType ; 
+    logset:dataSource :files ;
+    dcat:mediaType "inode/directory" ;
+    .
+
+:unstructuredTextFile 
+    a logset:LogFormatType ; 
+    logset:dataSource :files ;
+    dcat:mediaType "text/plain" ;
+    .
+
+:binaryFile           
+    a logset:LogFormatType ; 
+    logset:dataSource :files ;
+    dcat:mediaType "application/octet-stream" ;
+    .
+
+# not everything is a (local or remote) file, eg for a slurm instance or NEWT call:
+# :slurmInstance
+#     a logset:LogFormatType ;
+#     logset:dataSource :localCommands ;
+#     .
+# 
+# :newtAPI
+#     a logset:LogFormatType ;
+#     logset:dataSource :webAPI ;
+#     dcat:mediaType "application/json" ;
+#     .
+
+:log_messages  a logset:InfoType .
+:job_records   a logset:InfoType .
+:annotations   a logset:InfoType .
+
+# annotations are a kind of log of their own, and can be related to other LogSets
+:annotationDB
+    a logset:LogSeries ;
+    logset:logFormat :sqlite3 ;
+    # would the schema count as logFormatInfo ? or the version?
+    .
+
+# some tags and corresponding python regex patterns to help in logseries identification:
+# tags must be mostly-alphanumeric, with a colon allowed/used to separate a label for
+# what the tag conveys from a shorthand version of the pattern it describes
+# (this is because writing a full python regex for each filepattern is tedious and 
+# error prone, and many have similar components, eg 'console-<date:YYYYMMDD>' and
+# 'messages-<date:YYYYMMDD>')
+:dateYYYYMMDD
+    a logset:Pattern ;
+    logset:tag "<date:YYYYMMDD>" ;
+    logset:regex "(?P<date>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])(?P<day>[0-3][0-9]))" ;
+    .
+
+:timeYYYYMMDDtHHmmss
+    a logset:Pattern ;
+    logset:tag "<time:YYYYMMDDtHHmmss>" ;
+    logset:regex "(?P<time>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])(?P<day>[0-3][0-9])t(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])(?P<second>[0-5][0-9]))" ;
+    .
+
+:timeYYYYMMDDHHmmss
+    a logset:Pattern ;
+    logset:tag "<time:YYYYMMDDHHmmss>" ; 
+    logset:regex "(?P<time>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])(?P<day>[0-3][0-9])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])(?P<second>[0-5][0-9]))" ;
+    .
+
+:system
+    a logset:Pattern ;
+    logset:tag "<system:>" ; 
+    logset:regex "(?P<system>[a-z][a-z0-9]+)" ;
+    .
+
+:label
+    a logset:Pattern ;
+    logset:tag "<label:>" ; 
+    logset:regex "(?P<label>[a-z][a-z0-9]+)" ;
+    .
+
+# same sample SubjectTypes and their relationships, to help in identifying the subject
+# of a given ConcreteLog:
+:facility
+    a logset:SubjectType ;
+    skos:prefLabel "facility" ;
+    skos:note "an HPC center, eg NERSC" ;
+    .
+
+:cluster
+    a logset:SubjectType ;
+    skos:prefLabel "cluster" ;
+    skos:note "an HPC system" ;
+    logset:aspectOf :facility ;
+    .
+
+:node
+    a logset:SubjectType ;
+    skos:prefLabel "node" ;
+    skos:note "a server that is part of a cluster" ;
+    logset:aspectOf :cluster ;
+    .
+
+:server
+    a logset:SubjectType ;
+    skos:prefLabel "server" ;
+    skos:broader :node ;
+    skos:note "a standalone server" ;
+    logset:aspectOf :facility ;
+    .
+
+:computeNode
+    a logset:SubjectType ;
+    skos:prefLabel "compute node" ;
+    skos:narrower :node ;
+    .
+
+:loginNode
+    a logset:SubjectType ;
+    skos:prefLabel "login node" ;
+    skos:narrower :node ;
+    .
+
+:serviceNode
+    a logset:SubjectType ;
+    skos:prefLabel "service node" ;
+    skos:narrower :node ;
+    .
+
+:network
+    a logset:SubjectType ;
+    skos:prefLabel "network" ;
+    skos:note "any network within or between facilities" ;
+    logset:aspectOf :facility ;
+    .
+
+:hsn
+    a logset:SubjectType ;
+    skos:prefLabel "hsn" ;
+    skos:narrower :network ;
+    skos:note "the high speed network linking components of a cluster" ;
+    logset:aspectOf :cluster ;
+    .
+
+:aries
+    a logset:SubjectType ;
+    skos:prefLabel "aries" ;
+    skos:narrower :hsn ;
+    skos:note "Cray Aries high-speed network" ;
+    .
+
+# to do:
+# :aries, :gemini, :infiniband, :gbe (:esnet? sort of a facility, and more specific)
+
+:storage
+    a logset:SubjectType ;
+    skos:prefLabel "storage" ;
+    skos:note "a data storage system (eg filesystem or tape archive)" ;
+    logset:aspectOf :facility ;
+    .
+
+:filesystem
+    a logset:SubjectType ;
+    skos:prefLabel "filesystem" ;
+    skos:narrower :storage ;
+    logset:aspectOf :facility ;
+    logset:aspectOf :cluster ;
+    .
+
+:lustre_filesystem
+    a logset:SubjectType ;
+    skos:prefLabel "lustre filesystem" ;
+    skos:narrower :filesystem ;
+    skos:note "a Lustre high performance parallel filesystem" ;
+    logset:aspectOf :facility ;
+    logset:aspectOf :cluster ;
+    .
+
+:gpfs_filesystem
+    a logset:SubjectType ;
+    skos:prefLabel "gpfs filesystem" ;
+    skos:narrower :filesystem ;
+    skos:note "a GPFS parallel filesystem" ;
+    logset:aspectOf :facility ;
+    logset:aspectOf :cluster ;
+    .
+
+# the following illustrate that there might be a need for some relationship
+# between the purpose of a storage system and its implementation
+:home_storage
+    a logset:SubjectType ;
+    skos:prefLabel "home storage" ;
+    skos:narrower :storage ;
+    skos:note "a filesystem (or similar) prioritizing reliable storage and interactive use" ;
+    logset:aspectOf :facility ;
+    logset:aspectOf :cluster ;
+    .
+
+:work_filesystem
+    a logset:SubjectType ;
+    skos:prefLabel "work filesystem" ;
+    skos:narrower :filesystem ;
+    skos:note "a filesystem prioritizing fast, parallel I/O" ;
+    logset:aspectOf :facility ;
+    logset:aspectOf :cluster ;
+    .
+
+:burst_buffer
+    a logset:SubjectType ;
+    skos:prefLabel "burst buffer" ;
+    skos:narrower :storage ;
+    skos:note "storage prioritizing latency and speed over size or longevity" ;
+    logset:aspectOf :cluster ;
+    .
+
+:batch_system
+    a logset:SubjectType ;
+    skos:prefLabel "batch system" ;
+    logset:aspectOf :cluster ;
+    .
+
+:slurm
+    a logset:SubjectType ;
+    skos:prefLabel "slurm batch system" ;
+    skos:narrower :batch_system ;
+    logset:aspectOf :cluster ;
+    .
+
