@@ -1,85 +1,147 @@
 #!/usr/bin/env python3
-""" read/write/manage the RDF/Turtle knowledge graph """
 
 import logging
 import sys
-logging.debug(sys.version_info)
+logging.debug(str(sys.version_info))
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
     raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
 
-# example of a ConcreteLog:
-#:console-20170907
-#    a logset:ConcreteLog ;
-#    logset:subject nersc:cori ;
-#    dcat:downloadURL "p0-20170906t151820/console-20170907" ;
-#    logset:isInstanceOf cray:console_logfile ;
-#    dct:temporal [ a dct:PeriodOfTime ;
-#                  logset:startDate "2017-09-07T00:00:37.627889-07:00"^^xsd:dateTime ;
-#                  logset:endDate "2017-09-07T00:01:31.068610-07:00"^^xsd:dateTime ;
-#                 ] ;
-#    dcat:byteSize "5120"^^xsd:integer ;
-#    .
-
-import rdflib
-from rdflib.term import URIRef, Literal, BNode
-import LogsGraph
-from LogClass import LogClass, BlankNode, PropertyInfo
-
-class ConcreteLog(LogClass):
-    """ object corresponding to a logset:ConcreteLog """
-
-    rdf_class:str = 'logset:ConcreteLog'
-
-    # each class should list/describe the properties it expects to have:
-    # eg for LogSeries:
-    #   property_info["logset:infoType"] = PropertyInfo(infotype,
-    #                                       rdflib.term.URIRef, getinfotype)
-    property_info = { 
-        'logset:subject':      PropertyInfo('subject', URIRef, 'get_subject'),
-        'logset:isInstanceOf': PropertyInfo('isInstanceOf', URIRef, 'abort'),
-        'dcat:downloadURL':    PropertyInfo('downloadURL', URIRef, 'get_url'),
-        'dcat:accessURL':      PropertyInfo('accessURL', URIRef, 'get_url'),
-        'dct:temporal':        PropertyInfo('temporal', Temporal, 'inspect'),
-        'dcat:byteSize':       PropertyInfo('byteSize', Literal, 'inspect'),
-        'recordCount':         PropertyInfo('recordCount', Literal, 'inspect'),
-        'estRecordCount':      PropertyInfo('estRecordCount', Literal, 'inspect')
-                    }
-
-    def _init(self):
-        """ this is a hook for subclasses to override for initializing
-            subclass-specific stuff that decouples them from __init__
-            implementation
-        """
-        self._startDate = None
-        self._endDate = None
-
-#    @property
-#    def startDate(self):
-#        pass
-
-    def get_subject(self, predicate:URIRef, context=None) -> List[URIRef]:
-        print("{0} {1} called get_subject".format(self.__class__.__name__,str(self.uri)))
-        return []
-
-    def get_url(self, predicate:URIRef, context=None) -> List[URIRef]:
-        print("{0} {1} called get_url".format(self.__class__.__name__,str(self.uri)))
-        return []
-
-    def inspect(self, predicate:URIRef, context=None) -> List:
-        # call the appropriate handler (from logseries) to look at 
-        # the file for time, size etc info
-        # return a list of values for the appropriate predicate
-        # should also update properties with those values (and others)
-        print("{0} {1} called inspect".format(self.__class__.__name__,str(self.uri)))
-        return []
+from rdflib.term import BNode, Literal
+from util import Context, MultiDict
+import handlers
+from graph import getns
+from Node import Node, PropertyValues
+import dateutil.parser
 
 
-class Temporal(BlankNode):
+class Temporal(Node):
+    rdf_class = "dct:PeriodOfTime"
+    getters = {
+        'logset:startDate': 'inspect',
+        'logset:endDate': 'inspect',
+              }
+    required_properties = set(getters.keys())
 
-    rdf_class:str = 'dct:temporal'
-    property_info = {
-        # inspect will need to be called with context that includes the concretelog
-        # so it can get the handlers
-        'logset:startDate': PropertyInfo('startDate', Literal, 'inspect'),
-        'logset:endDate': PropertyInfo('endDate', Literal, 'inspect')
-                    }
+    @property
+    def uri(self) -> str:
+        if self._uri is None:
+            self._uri = BNode()
+        return self._uri
+
+    def inspect(self, context:Context) -> PropertyValues:
+        retval = set()
+        predicate = context['predicate']
+        handler = context['handler']
+        xsd = getns('xsd')
+        if predicate == 'logset:startDate':
+            retval.add(Literal(handler.t_earliest, datatype=xsd.dateTime))
+        elif predicate == 'logset:endDate':
+            # note if it is a live source, enddate should be None
+            retval.add(Literal(handler.t_latest, datatype=xsd.dateTime))
+        return retval
+
+
+class ConcreteLog(Node):
+    rdf_class = "logset:ConcreteLog"
+    getters = {
+        'rdfs:label':              'infer',
+        'logset:isInstanceOf':     'infer',
+        'dcat:downloadURL':        'infer',
+        'dcat:accessURL':          'infer',
+        'logset:subject':          'infer',
+        'dct:temporal':            'inspect',
+        'dcat:byteSize':           'inspect',
+        'logset:recordCount':      'inspect',
+        'logset:estRecordCount':   'inspect',
+        'logset:estRecordsPerDay': 'inspect',
+              }
+    required_properties = set(['rdfs:label', 'logset:isInstanceOf', 
+                               'logset:subject', 'dct:temporal'])
+    label_property:str = 'rdfs:label'
+    label_alternate = 'this'
+
+    def __init__(self, properties:MultiDict = None) -> None: 
+        logging.debug("concretelog created with {0}".format(properties))
+        super().__init__(properties=properties)
+        self.handler = None
+
+    @property
+    def uri(self):
+        if self._uri is None:
+            logging.debug("concretelog making a uri from {0}".format(self.properties))
+            ns = self._namespace
+            self._uri = self.make_uri(self.label_property, ns)
+        return self._uri
+
+    # this might be redundant - can get them from properties passed in:
+    def infer(self, context:Context) -> PropertyValues:
+        """ get properties from context """
+        logging.warn("in concretelog .infer with predicate {0}".format(context['predicate']))
+        predicate = context['predicate']
+        retval = set()
+        if predicate == 'rdfs:label':
+            retval.add(Literal(context['label']))
+        elif predicate == 'logset:isInstanceOf':
+            retval.add(context['logseries'].uri)
+        elif predicate in ('dcat:downloadURL','dcat:accessURL'):
+            retval.add(context[predicate].uri)
+        elif predicate == 'logset:subject':
+            retval = set(context['subjects'])
+        return retval
+
+    def inspect(self, context:Context) -> PropertyValues:
+        """ get properties by calling on the handler """
+        xsd = getns('xsd')
+        if self.handler is None:
+            #handler_factory = context['handler_factory']
+            handler_args = context['handler_args'] # dict of kwargs
+            logging.debug("in inspect, cntext has: {0}".format(context))
+            logging.debug("in inspect, handler_args has: {0}".format(handler_args))
+            self.handler = handlers.factory(**handler_args)
+            #self.handler = handler_factory(**handler_args)
+        retval = set()
+        predicate = context['predicate']
+        if predicate == 'dct:temporal':
+            context.push(handler=self.handler, predicate=predicate)
+            t = Temporal()
+            t.add_to_graph(context)
+            context.pop(('handler','predicate'))
+            retval.add(t.uri)
+        elif predicate == 'dcat:byteSize':
+            value = self.handler.size
+            xsd = getns('xsd')
+            retval.add(Literal(value, datatype=xsd.integer))
+        elif predicate == 'logset:recordCount':
+            if self.handler.num_records is not None:
+                retval.add(Literal(self.handler.num_records, datatype=xsd.integer))
+        elif predicate == 'logset:estRecordCount':
+            if self.handler.num_records is not None:
+                retval.add(Literal(self.handler.num_records, datatype=xsd.integer))
+            else:
+                buf = list(self.handler.get_slice(limit=10))
+                avg = sum([len(entry) for entry in buf]) / len(buf)
+                guess = self.handler.size / avg
+                retval.add(Literal(guess, datatype=xsd.integer))
+        elif predicate == 'logset:estRecordsPerDay':
+            # get timespan from handler, convert to days, etc
+            # the handler stores the timespan just as text, so need to convert
+            t_earliest = dateutil.parser.parse(self.handler.t_earliest)
+            t_latest = dateutil.parser.parse(self.handler.t_latest)
+            days = (t_latest - t_earliest).total_seconds()/86400
+            nrecs = self.get_one_value('logset:recordCount') or \
+                    self.get_one_value('logset:estRecordCount')
+            nrecs = int(float(str(nrecs))) # sorry
+            nrecs_per_day = int(nrecs/days)
+            retval.add(Literal(nrecs_per_day, datatype=xsd.integer))
+        return retval
+
+    def add_to_graph(self, context:Context=None):
+        super().add_to_graph(context)
+        dcat = graph.getns('dcat')
+        self.graph.add( (context['logset'], dcat.distribution, self.uri) )
+
+
+
+
+
+

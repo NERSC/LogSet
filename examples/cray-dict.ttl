@@ -12,12 +12,37 @@
 #@base <https://raw.githubusercontent.com/NERSC/LogSet/master/examples> .
 @prefix : <cray-dict#> .
 
+# some Cray-specific SubjectTypes:
+:aries
+    a logset:SubjectType ;
+    skos:prefLabel "aries" ;
+    skos:narrower ddict:hsn ;
+    skos:note "Cray Aries high-speed network" ;
+    .
+
+:ariesRouter
+    a logset:SubjectType ;
+    skos:prefLabel "aries router" ;
+    skos:altLabel "router" ;
+    skos:note "The high-radix tile-based router used by Cray Aries" ;
+    skos:narrower ddict:router ;
+    logset:aspectOf :aries ;
+    .
+
+:ariesRouterTile
+    a logset:SubjectType ;
+    skos:prefLabel "aries router tile" ;
+    skos:altLabel "tile" ;
+    skos:note "a single tile in an Aries router" ;
+    logset:aspectOf :ariesRouter ;
+    .
+
 # Cray XC systems have a specific service node called the smw (system management
 # workstation) node, which collects many logs
 :smw
     a logset:SubjectType ;
     skos:prefLabel "smw" ;
-    skos:narrower :serviceNode ;
+    skos:narrower ddict:serviceNode ;
     .
 
 :aries_status_snapshots a logset:infoType .
@@ -80,21 +105,21 @@
                  ''' ;
     logset:infoType ddict:log_messages ;
     logset:subjectType ddict:cluster ;
-    logset:logFormatType ddict:unstructuredFile ; # actually it has structure, but too complex initially
+    logset:logFormatType ddict:unstructuredTextFile ; # actually it has structure, but too complex initially
     logset:logFormatInfo "filepattern=consumer-<date:YYYYMMDD>$" ;
     logset:logFormatInfo "filepattern=consumer$" ;
     .
 
-:aries_lcb_status
-    a logset:LogSeries ;
-    logset:infoType :aries_status_snapshots ;
-    logset:subjectType ddict:aries ;
-    logset:logFormatType ddict:filePerTimepoint ;
-    logset:logFormatInfo "filepattern=<label:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
-    #logset:logFormatInfo "mediatype=application/x-xz"
-    # will need a specific handler I think, eg:
-    #logset:logFormatInfo "handler=AriesLcbStatusHandler"
-    .
+#:aries_lcb_status
+#    a logset:LogSeries ;
+#    logset:infoType :aries_status_snapshots ;
+#    logset:subjectType ddict:aries ;
+#    logset:logFormatType ddict:filePerTimepoint ;
+#    logset:logFormatInfo "filepattern=<label:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
+#    #logset:logFormatInfo "mediatype=application/x-xz"
+#    # will need a specific handler I think, eg:
+#    #logset:logFormatInfo "handler=AriesLcbStatusHandler"
+#    .
 
 
 

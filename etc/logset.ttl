@@ -56,7 +56,7 @@
                      # dct:title         a rdfs:Literal
                      # dct:description   a rdfs:Literal
                      # dct:publisher     a foaf:Organization
-                     # dct:contactPoint  a vcard:Kind
+                     # dcat:contactPoint a vcard:Kind
                      (publisher and contactPoint are especially useful when the
                      actual log data is not directly accessible to people or 
                      tools using the metadata, so that having identified that 
@@ -119,11 +119,11 @@
         owl:onProperty dcat:mediaType ;  # may specify a mime type
         owl:maxCardinality 1 ;
     ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :fmtInfoKey ;
-        owl:minCardinality 1 ;
-    ] ;
+#    rdfs:subClassOf [
+#        rdf:type owl:Restriction ;
+#        owl:onProperty :fmtInfoKey ;
+#        owl:minCardinality 1 ;
+#    ] ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
         owl:onProperty :dataSource ;
@@ -139,21 +139,6 @@
                  ''' ;
     .
     
-
-:LogFormatInfo
-    a owl:Class ;
-    rdfs:comment ''' A mechanism for LogFormatTypes to declare and describe
-                     key/value pairs they need to find in the logFormatInfo
-                     dictionary. Would mostly be in the forma of a blank node
-                 ''' ;
-    # need a literal label at minimum, also recommend having a dct:description
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty rdfs:label ;
-        owl:cardinality 1 ;
-    ] ;
-    .
-
 # Subject, SubjectType and InfoType help the system (and user) to guess and
 # see relationships between ConcreteLogs and LogSeries across different
 # LogSets. SubjectTypes are skos Concepts, and have borader/narrower/related
@@ -251,14 +236,32 @@
                  ''' ;
     .
 
-
-# and the properties linking them:
-:fmtInfoKey
-    a owl:DatatypeProperty ;
-    rdfs:domain :LogFormatType ;
-    rdfs:range :LogFormatInfo ;
+:LogFormatInfoKey
+    a owl:Class ;
+    rdfs:comment ''' A mechanism for LogFormatTypes to declare and describe
+                     key/value pairs they need to find in the logFormatInfo
+                     dictionary. Would mostly be in the form of a blank node
+                 ''' ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty rdfs:label ;
+        owl:cardinality 1 ;
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dct:description ;
+        owl:cardinality 1 ;
+    ] ;
     .
 
+# and the properties linking them:
+:logFormatInfoKey
+    a owl:DatatypeProperty ;
+    rdfs:domain :LogFormatType ;
+    rdfs:range :LogFormatInfoKey ;
+    .
+
+## and the properties linking them:
 :isSpecific
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment ''' the type of a subject ''' ;
@@ -266,6 +269,15 @@
     rdfs:range :SubjectType ;
     .
 
+:isClosed
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment ''' boolean value indicating that no new entries are arriving 
+                     in this logset (as compared to a "living" data source
+                     with entries being added over time)
+                 ''' ;
+    rdfs:domain :LogSet ;
+    rdfs:range xsd:boolean ; # can be 'true' or 'false'. No value means 'false'
+    .
 
 :subject 
     a owl:ObjectProperty ;

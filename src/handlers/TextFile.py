@@ -9,6 +9,7 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 5:
 # could conceivably access files over ssh/scp this way too..
 
 import re
+import os
 _protocols = ['http', 'https', 'file']
 _pattern = '|'.join(( '(?P<{0}>{0}:)'.format(p) for p in _protocols ))
 _re_url = re.compile('(?:{})(?P<path>.*)'.format(_pattern))
@@ -29,17 +30,19 @@ def factory(url):
 
 class TextFile:
     """ common interface for accessing local and remote files """
-    _blksz = 1024 # somewhat-arbitrary chunksize as unit for reading
+    _blksz = 4096 # somewhat-arbitrary chunksize as unit for reading
 
     @property
     def nblocks(self):
-        return (self.size+self._blksz-1) / self._blksz
+        return (self.size+self._blksz-1) // self._blksz
 
 
-class LocalTextFile:
+class LocalTextFile(TextFile):
 
     def __init__(self, path):
         self.path = path
+        self._size = None
+        self._lastlines_cache = {} # block: partial-line
 
     @property
     def size(self):
@@ -47,32 +50,41 @@ class LocalTextFile:
              self._size = os.path.getsize(self.path)
         return self._size
 
-    def readlines(self, firstblock=0, n=0):
+    #def readlines(self, firstblock=0, n=0):
+    def readlines(self, start=0, n=0):
         """ generator yiedling n lines starting from the first definitely-
-            complete line after firstblock. If firstblock==0, readlines assumes
+            complete line after start. If start!=0, readlines assumes
             it has landed partway into a line and discards until the next line 
-            break. If there is less than a full line, yields None
+            break. If there is less than a full line, yields no lines
             If n<=0. read to the end of the file
         """
+        #logging.info("reading {0:d} lines from {1:d}".format(n,start))
         with open(self.path, 'r') as f:
-            f.seek(firstblock*self._blksz)
+            #f.seek(firstblock*self._blksz)
+            f.seek(start) 
             line = f.readline()
+            #logging.info("read a line: {0}".format(line))
             count=0
-            if firstblock == 0:
+            if start == 0:
                 count += 1
+                #logging.info("yielding: {0}".format(line))
                 yield line
-            while count < n or n < 0:
+            while count < n or n <= 0:
                 line = f.readline()
                 if line == '':
                     break
                 count += 1
+                #logging.info("yielding: {0}".format(line))
                 yield line
 
 
-class RemoteTextFile:
+class RemoteTextFile(TextFile):
 
     def __init__(self, url):
         self.url = url
+        self._size = None
+        # TODO: implement this:
+        self._lastlines_cache = {} # block: partial-line
 
     @property
     def size(self):
@@ -81,8 +93,8 @@ class RemoteTextFile:
                 self._size = int(f.info()["Content-Length"])
         return self._size
 
-    def readlines(self, firstblock=0, n=0):
-        if firstblock==0 and n<=0:
+    def readlines(self, start=0, n=0):
+        if start==0 and n<=0:
             # read whole file:
             with urllib.request.urlopen(self.url) as f:
                 for line in f.readlines():
@@ -91,17 +103,20 @@ class RemoteTextFile:
             line = ''
             while count < n or n < 0:
                 # need to keep fetching blocks till we have enough lines
-                bs = min(self._blksz, self.size)
-                b = 'bytes={0:d}-'.format(firstblock*self._blksz)
+                #bs = min(self._blksz, self.size)
+                #b = 'bytes={0:d}-'.format(firstblock*self._blksz)
+                b = 'bytes={0:d}-'.format(start)
                 if n>0: # not reading till end of file
-                    b+='{0:d}'.format((firstblock+1)*self._blksz - 1)
+                    b+='{0:d}'.format(min(start+self._blksz,self.size))
+                    #b+='{0:d}'.format((firstblock+1)*self._blksz - 1)
                 req = urllib.request.Request(self.url, headers={'Range':b})
                 with urllib.request.urlopen(req) as f:
                     line += f.readline() # in case previous range left unfinished line
                     while count < n or n < 0:
                         if line[-1] != '\n':
                             # end of block, break and read next block
-                            firstblock += 1 
+                            #firstblock += 1 
+                            start += self._blksz
                             break
                         n += 1
                         yield line

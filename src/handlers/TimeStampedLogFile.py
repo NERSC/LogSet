@@ -1,319 +1,190 @@
 #!/usr/bin/env python3
 
-# system python 3 on Cori is broken so user will need to load a
-# python module, which will be 3.6+ anyway, so we'll take advantage
-# of some of python's modern features:
+import logging
 import sys
-print(sys.version_info)
+logging.debug(str(sys.version_info))
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
-    raise Exception("Requires python 3.5+ .. try:\n  module load python/3.6-anaconda-4.4")
+    raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
 
-from .LogFormatType import LogFormatType
-from .TextFile import LocalTextFile, RemoteTextFile
+#:timeStampedLogFile
+#    a logset:LogFormatType ;
+#    logset:dataSource :files ;
+#    dcat:mediaType "text/plain" ;
+#    .
 
-from collections import namedtuple
-ParseRule = namedtuple('ParseRule', 'regex, parser')
-
-def cast(match, group, converter):
-    """ given a re match object, identifier for a possibly-matched group
-        and a conversion function, return a converted object. Eg, if:
-          match = re.search('(?P<first>\d)(?:-(?P<last>\d))?',1-3)
-          group = 'last'
-          converter = int
-        then cast(match, group, converter) == 3 
-    """
-    text = match.group(group)
-    return converter(text) if text else None
+#from graph.LogFormatType import FileBasedLogFormatType
+#from FileBasedLogFormatType  import FileBasedLogFormatType
+from util import MultiDict, ParseRule, cast
+from . import TextFile
+import re
+from typing import Union, Generator
+import dateutil.parser
 
 
-class TimeStampedLogFile(LogFormatType):
+#class TimeStampedLogFile(FileBasedLogFormatType):
+class TimeStampedLogFile:
+    rdf_class = "logset:timeStampedLogFile"
 
-    # this probably belongs in all LogFormatType:
-    _logFormatInfo_keys = {
-        # eg ts_words=0-1  or ts_words=1
+    # how to turn strings in fmtinfo into attributes we can use:
+    fmtinfo_parsers = {
         'ts_words': ParseRule( re.compile('(?P<first>\d)(?:-(?P<last>\d))?'),
+                               # make a tuple of (first,last):
                                lambda m: (cast(m,'first',int),cast(m,'last',int))),
         'part_word': ParseRule( re.compile('(?P<word>\d)'),
+                               # just an integer:
                                lambda m: cast(m,'word',int))
-                          }
-    # the above is for properties of the LogSeries
-    # what about properties of the ConcreteLog, like?:
-    #    def startDate(self)
-    #    def endDate(self)
-    #    def byteSize(self)
-    #    def recordCount(self)
-    #    def estRecordCount(self)
-
-    # if indexing a file, we want to use the logformatinfo to help work those out
-    # but if reading a file based on its graph entry, want to get eg the dct:temporal
-    # or dcat:byteSize properties (and downloadurl, etc)
-    # Maybe require the sparql query to handle finding properties, and pass them 
-    # in through kwargs eg newlogfile = TimeStampedLogFile(url, **properties)
-
-    # whwn indexing, sometimes we want to write a new LogSeries, other times a 
-    # node ConcreteLog .. how to distinguish if only one handler class does both
-    # things? 
-    # hmm, I think confusion is because, eg TimeStampedLogFile is a logFormatType,
-    # but messages_logfile is a LogSeries .. but a TimeStampedLogFile looks after
-    # the reading/writing data, and the messages_logfile is a specific TimeStampedLogFile
-    # that eg looks after ?
-    # we have TimeStampedLogFile, messages_logfile and messages-20170101
+                      }
 
 
-    def __init__(self, url, **kwargs):
-        self.url = url
-        self._actual_file = TextFile.factory(url)
-
-        m = _re_url.search(url)
-        if m is None:
-            self._actual_file = LocalTextFile(
-            cls = LocalTimeStampedLogFile
-            path = url
-        elif m.group('file'):
-            cls = LocalTimeStampedLogFile
-            path = m.group('path')
-        else:
-            cls = RemoteTimeStampedLogFile
-            path = url
-
-
-
-        for attr,parserule in self._logFormatInfo_keys.items():
-            if attr in kwargs:
-                m = parserule.regex.search(info[attr])
+    def __init__(self, target_url:str=None, fmtinfo:MultiDict=None):
+#                 properties:MultiDict=None) -> None:
+        """ constructor should take properties as a keyword argument
+            (to pass to the Node superclass constructor). target_url
+            (eg the file path to be opened) should be supported but
+            not required (because Node factories might not provide it),
+            same for fmtinfo
+        """
+        #super().__init__(properties=properties)
+        self._size = None
+        self._t_earliest = None
+        self._t_latest = None
+        self._actual_file = TextFile.factory(target_url)
+        for attr,parserule in self.fmtinfo_parsers.items():
+            if attr in fmtinfo:
+                value = fmtinfo.one(attr)
+                m = parserule.regex.search(value)
                 setattr(self, attr, parserule.parser(m))
-#    @property
-#    def size(self):
-#        if self._size is None:
-#             self._size = os.path.getsize(self.path)
-#        return self._size
+        self.filters = {}
 
+    def _timestamp(self,words):
+        first,last = self.ts_words
+        last = last or first # in case it is none
+        return ' '.join(words[first:last+1])
 
-## to get the timespan, and also to extract slices from a log, we need to 
-## fetch arbitrary ranges from within the logfile. We can do this for local 
-## files with seek, or remote files with urllib and range headers, but no
-## method works for both. So we have two versions of the class and a factory
-## method to instantiate the appropriate one:
-#import re
-#protocols = ['http', 'https', 'file']
-#pattern = '|'.join(( '(?P<{0}>{0}:)'.format(p) for p in protocols ))
-#re_url = re.compile('(?:{})(?P<path>.*)'.format(pattern))
-#def TimeStampedLogFile(url, info):
-#    m = re_url.search(url)
-#    if m is None:
-#        cls = LocalTimeStampedLogFile
-#        path = url
-#    elif m.group('file'):
-#        cls = LocalTimeStampedLogFile
-#        path = m.group('path')
-#    else:
-#        cls = RemoteTimeStampedLogFile
-#        path = url
-#    return cls(path, info)
-#
-#logFormat = 'timeStampedLogFile'
-#constructor = TimeStampedLogFile
-#
-#import os
-#import dateutil.parser
-#class LocalTimeStampedLogFile(LogFormatType):
-#    # logfiles might be very large, and we often need to find particular lines.
-#    # rather than reading the whole file linearly and parsing for newlines, we'll
-#    # read chunks from an arbitrary location and pull complete lines from them.
-#    # _blocksz is an initial chunk size to use for this
-#    _blocksz = 1000
-#
-#    def __init__(self, path, info):
-#        self.path = path
-#        # regular attributes:
-#        # ts_words is the word or word ranges making up the timestamp, 0 is first-word-in-line:
-#        ts_words = info.get('ts_words',None)
-#        if ts_words:
-#            first, sep, last = ts_words.partition('-')
-#            ifirst = int(first)
-#            if last:
-#                ilast = int(last)+1
-#            else:
-#                ilast = ifirst + 1
-#            self.ts_words = (ifirst,ilast)
-#        else:
-#            self.ts_words = None
-#        # part_word is the word identifying the part about which each entry is:
-#        part_word = info.get('part_word',None)
-#        if part_word:
-#            self.part_word = int(part_word)
-#        else:
-#            self.part_word = None
-#        #for f in ('ts_words', 'part_word'):
-#        #    setattr(self, f, int(info.get(f, None))) # TODO handle int conversion better
-#        # attributes we might have to find from file:
-#        for f in ('size', 't_start', 't_end'):
-#            setattr(self, '_'+f, info.get(f, None))
-#
-#    @property
-#    def size(self):
-#        if self._size is None:
-#             self._size = os.path.getsize(self.path)
-#        return self._size
-#
-#    import io
-#    def timespan(self):
-#        """ return the timestamps of the first and last entries in the file """
-#        if self._t_start is None or self._t_end is None:
-#            with open(self.path, 'r') as f:
-#                # find the first and last lines, check the timestamps
-#                firstline = f.readline()
-#            sz = self.size
-#            #with open(self.path, 'rb') as f:
-#            with open(self.path, 'r') as f: # must be text or string methods get confused
-#                bs = min(self._blocksz, sz)
-#                lines = []
-#                while bs <= sz:
-#                    #f.seek(-bs, 2)
-#                    f.seek(sz-bs)   # can only seek from start in text files
-#                    lines = f.readlines() # read to end of file
-#                    if len(lines) > 1:
-#                        break
-#                    bs *= 2
-#                else:
-#                    raise Exception("can't find last entry in {0:s}".format(self.path))
-#                lastline = lines[-1]
-#            print (lastline)
-#            print(lastline.split())
-#            print(lastline.split()[self.ts_words[0]:self.ts_words[1]])
-#            print(self.ts_words)
-#            print(' '.join(lastline.split()[self.ts_words[0]:self.ts_words[1]]))
-#            self._t_start = dateutil.parser.parse(' '.join(firstline.split()[self.ts_words[0]:self.ts_words[1]]))
-#            self._t_end = dateutil.parser.parse(' '.join(lastline.split()[self.ts_words[0]:self.ts_words[1]]))
-#        return (self._t_start, self._t_end)
-#
-#    def entries(self, since=None, until=None, parts=None):
-#        """ return the log entries of data between 'since' (or the start of the 
-#            file) and 'until' (or the end of the file), inclusive, optionally
-#            filtering for certain parts
-#        """
-#        pass
-#
-#
-#import urllib.request
-#class RemoteTimeStampedLogFile(LogFormatType):
-#    _blocksz = 1000
-#
-#    def __init__(self, url, info):
-#        self.url = url
-#        # regular attributes:
-#        for f in ('ts_word', 'part_word'):
-#            setattr(self, f, info.get(f, None))
-#        # attributes we might have to find from file:
-#        for f in ('size', 't_start', 't_end'):
-#            setattr(self, '_'+f, info.get(f, None))
-#
-#    @property
-#    def size(self):
-#        if self._size is None:
-#            with urllib.request.urlopen(self.url) as f:
-#                self.size = f.info()["Content-Length"]
-#        return self._size
-#
-#    def timespan(self):
-#        if self._t_start is None or self._t_end is None:
-#            with urllib.request.urlopen(self.url) as f:
-#                # find the first and last lines, check the timestamps
-#                firstline = f.readline()
-#            # read the last _blocksz bytes
-#            bs = min(self._blocksz, sz)
-#            lines = []
-#            # make sure we get at least a full line:
-#            while bs <= sz:
-#                b = 'bytes={0:d}-'.format(int(self.size)-bs)
-#                req = urllib.request.Request(self.url, headers={'Range':b})
-#                with urllib.request.urlopen(req) as f:
-#                    lines = f.readlines() # read to end of file
-#                    if len(lines) > 1:
-#                        break
-#                    bs += self._blocksz 
-#            else:
-#                raise Exception("can't find last entry in {0:s}".format(self.url))
-#            lastline = lines[-1]
-#            self._t_start = dateutil.parser.parse(firstline.split()[self.ts_word])
-#            self._t_end = dateutil.parser.parse(lastline.split()[self.ts_word])
-#        return (self._t_start, self._t_end)
-#
-#
-## common interface for local and remote files:
-#class TextFile:
-#    """ common interface for accessing local and remote files """
-#    _blksz = 1024 # somewhat-arbitrary chunksize as unit for reading
-#
-#    @property
-#    def nblocks(self):
-#        return (self.size+self._blksz-1) / self._blksz
-#
-#class LocalTextFile:
-#
-#    @property
-#    def size(self):
-#        if self._size is None:
-#             self._size = os.path.getsize(self.path)
-#        return self._size
-#
-#    def readlines(self, firstblock=0, n=0):
-#        """ generator yiedling n lines starting from the first definitely-
-#            complete line after firstblock. If firstblock==0, readlines assumes
-#            it has landed partway into a line and discards until the next line 
-#            break. If there is less than a full line, yields None
-#            If n<=0. read to the end of the file
-#        """
-#        with open(self.path, 'r') as f:
-#            f.seek(firstblock*self._blksz)
-#            line = f.readline()
-#            count=0
-#            if firstblock == 0:
-#                count += 1
-#                yield line
-#            while count < n or n < 0:
-#                line = f.readline()
-#                if line == '':
+    def component(self,words):
+        return words[part_word]
+            
+    @property 
+    def size(self) -> int:
+        """ the size in bytes """
+        return self._actual_file.size
+
+    @property 
+    def t_earliest(self) -> str:
+        """ the returned string should be parseable by python's
+            dateutil.parser.parse
+        """
+        if self._t_earliest is None:
+            line = next(self._actual_file.readlines(0,1))
+            self._t_earliest = self._timestamp(line.split())
+        return self._t_earliest
+            
+    @property 
+    def t_latest(self) -> str:
+        """ the returned string should be parseable by python's
+            dateutil.parser.parse
+        """
+        if self._t_latest is None:
+            latest = None
+            # step backwards hrough the file in blocks until we 
+            # have a complete line
+            blksz = 1024
+            start = min(0,self._actual_file.size - blksz)
+            while start >= 0:
+                for line in self._actual_file.readlines(start):
+                    latest = line
+                if latest is not None:
+                    # we have a full line
+                    break
+            self._t_latest = self._timestamp(latest.split())
+        return self._t_latest
+
+#            nblocks=self._actual_file.nblocks
+#            logging.info("nblocks is {0:d}".format(nblocks))
+#            for i in range(1,nblocks+1):
+#                for line in self._actual_file.readlines(nblocks-i,1):
+#                    logging.info("read line {0}".format(line))
+#                    latest = line
+#                if latest is not None:
 #                    break
-#                count += 1
-#                yield line
-#
-#
-#class RemoteTextFile:
-#
-#    @property
-#    def size(self):
-#        if self._size is None:
-#            with urllib.request.urlopen(self.url) as f:
-#                self._size = int(f.info()["Content-Length"])
-#        return self._size
-#
-#    def readlines(self, firstblock=0, n=0):
-#        if firstblock==0 and n<=0:
-#            # read whole file:
-#            with urllib.request.urlopen(self.url) as f:
-#                for line in f.readlines():
-#                    yield line
-#        else:
-#            line = ''
-#            while count < n or n < 0:
-#                # need to keep fetching blocks till we have enough lines
-#                bs = min(self._blksz, self.size)
-#                b = 'bytes={0:d}-'.format(firstblock*self._blksz)
-#                if n>0: # not reading till end of file
-#                    b+='{0:d}'.format((firstblock+1)*self._blksz - 1)
-#                req = urllib.request.Request(self.url, headers={'Range':b})
-#                with urllib.request.urlopen(req) as f:
-#                    line += f.readline() # in case previous range left unfinished line
-#                    while count < n or n < 0:
-#                        if line[-1] != '\n':
-#                            # end of block, break and read next block
-#                            firstblock += 1 
-#                            break
-#                        n += 1
-#                        yield line
-#                        line = f.readline()
-#
-#
-#
-#
+#            logging.info("latest is {0}".format(latest))
+#            self._t_latest = self._timestamp(latest.split())
+#        return self._t_latest
+
+    @property 
+    def num_records(self) -> Union[int,None]:
+        """ the number of records, if known/knowable, or None otherwise """
+        return None
+    
+    def get_slice(self, since:str=None, until:str=None, 
+                  limit:int=0) -> Generator[str,None,None]:
+        """ find and yield records (in string form) from at or after 
+            since (or start of file), and up until until= (or end of 
+            file, inclusive), with an optional limit on the number of 
+            records returned. since and until must be parseable by
+            dateutil.parser.parse
+        """
+        t_earliest = dateutil.parser.parse(self.t_earliest)
+        t_latest = dateutil.parser.parse(self.t_latest)
+        tspan = (t_latest-t_earliest).total_seconds()
+        # search for where to start reading
+        if since is None:
+            t_since = t_earliest
+            start = 0
+        else:
+            t_since = dateutil.parser.parse(since)
+        if until is None:
+            t_until = t_latest
+        else:
+            t_until = dateutil.parser.parse(until)
+
+        fullcount = 0 # number of read lines meeting time criteria
+        count = 0     # number of lines actually yielded, after filters
+        fraction = (t_since - t_earliest).total_seconds() / tspan
+        fraction = max(fraction,0.0)
+        start = int(self.size*fraction)
+        while True:
+            for line in self._actual_file.readlines(start):
+                t_line = dateutil.parser.parse(self._timestamp(line.split()))
+                if t_line < t_since:
+                    # TODO is we're wildly short, break and jump forward
+                    continue
+                if fullcount == 0 and t_line > t_since:
+                    # look back a bit
+                    tspan = (t_line - t_earliest).total_seconds()
+                    fraction = (t_since - t_earliest).total_seconds() / tspan
+                    start = int(start*fraction)
+                    start = max(0, start-1024) # back up a little more for good measure
+                    break
+                # line is after since
+                if t_line > t_until:
+                    break
+                fullcount += 1
+                # TODO apply filters
+                count += 1
+                yield line
+                if limit>0 and limit<=count:
+                    return # finished
+            else:
+                return # thats all we have
+            if fullcount != 0:
+                # we got here because we passed t_until
+                return
+
+    def set_filter(self, id_tag:str, field:str, regex:str, invert=False):
+        """ add a filter to apply during get_slice. the id_tag is just 
+            in support of clearing filters selectively (key in a dict).
+            the field is a field name, eg "timestamp" - the available
+            field names should be documented via the rdfs:comment property
+            of the LogFormatType
+        """
+        pass
+             
+    def clear_filter(self, id_tag:str):
+        """ remove the specified filter """
+        pass
+
+#import handlers
+#handlers.register(TimeStampedLogFile)
+#rdf_class = TimeStampedLogFile.rdf_class
+#constructor = TimeStampedLogFile

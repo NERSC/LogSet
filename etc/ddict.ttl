@@ -44,6 +44,31 @@
     a logset:LogFormatType ; 
     logset:dataSource :files ;
     dcat:mediaType "text/plain" ;
+    rdfs:comment ''' A timeStampedLogFile expects two logset:logFormatInfo
+                     properties, for the "words" in each entry comprising:
+                        ts_words=  the timestamp (can be a range, eg 0-1)
+                        part_word= the component
+                     Note that "words" are whitespace-separated parts of 
+                     a line, and that he index is zero-based.
+                     The fields in a record are referred as:
+                        prefix - the part before timestamp or component
+                        timestamp
+                        component
+                        payload - the part after the timestamp and component
+                        all - the whole line
+                 ''' ;
+    logset:logFormatInfoKey [ a logset:LogFormatInfoKey ;
+        rdfs:label "ts_words" ;
+        dct:description ''' the "words" in an entry that comprise the timestamp.
+                            0-based, and can incorporate multiple words like 0-1
+                        ''' ;
+        ] ;
+    logset:logFormatInfoKey [ a logset:LogFormatInfoKey ;
+        rdfs:label "part_word" ;
+        dct:description ''' the "word" in an entry that indicates the component.
+                            0-based.
+                        ''' ;
+        ] ;
     .
 
 :sqlite3              
@@ -82,9 +107,20 @@
 #     dcat:mediaType "application/json" ;
 #     .
 
-:log_messages  a logset:InfoType .
-:job_records   a logset:InfoType .
-:annotations   a logset:InfoType .
+:logMessages  
+    a logset:InfoType 
+    skos:prefLabel "log messages" ;
+    .
+
+:jobRecords
+    a logset:InfoType 
+    skos:prefLabel "job records" ;
+    .
+
+:annotations
+    a logset:InfoType .
+    skos:prefLabel "annotations" ;
+    .
 
 # annotations are a kind of log of their own, and can be related to other LogSets
 :annotationDB
@@ -147,8 +183,37 @@
 :node
     a logset:SubjectType ;
     skos:prefLabel "node" ;
-    skos:note "a server that is part of a cluster" ;
+    skos:note ''' a server that is part of a cluster. 'node' implies a single  
+                  primary memory address space (possibly with additional address 
+                  spaces belonging to attached devices eg accelerators), and
+                  might be implemented as a complete server, a subdivision of 
+                  a server (eg Cray XC blades have 4 nodes), or even a virtual 
+                  machine
+              ''' ;
     logset:aspectOf :cluster ;
+    .
+
+:blade
+    a logset:SubjectType ;
+    skos:prefLabel "blade" ;
+    skos:note "a server that is part of a chassis in a cluster" ;
+    logset:aspectOf :chassis ;
+    .
+
+:chassis
+    a logset:SubjectType ;
+    skos:prefLabel "chassis" ;
+    skos:altLabel "cage" ;
+    skos:note "a housing with some shared infrastructure for multiple blades" ;
+    logset:aspectOf :cabinet ;
+    .
+
+:cabinet
+    a logset:SubjectType ;
+    skos:prefLabel "cabinet" ;
+    skos:altLabel "rack" ;
+    skos:note "a standalone server" ;
+    logset:aspectOf :facility ;
     .
 
 :server
@@ -157,6 +222,40 @@
     skos:broader :node ;
     skos:note "a standalone server" ;
     logset:aspectOf :facility ;
+    .
+
+:switch
+    a logset:SubjectType ;
+    skos:prefLabel "switch" ;
+    skos:note ''' a network switch. The term is often used for a physical box 
+                  that performs both switching and routing, so we consider it 
+                  a broader concept than a router ''';
+    skos:broader :router
+    logset:aspectOf :network ;
+    .
+
+:router
+    a logset:SubjectType ;
+    skos:prefLabel "router" ;
+    skos:narrower :switch ;
+    skos:note "a device for routing between networks (often part of a switch)" ;
+    logset:aspectOf :network ;
+    .
+
+:networkLink
+    a logset:SubjectType ;
+    skos:prefLabel "networkLink" ;
+    skos:altLabel "link" ;
+    skos:note "a link between 2 points on a network" ;
+    logset:aspectOf :network ;
+    .
+
+:nic
+    a logset:SubjectType ;
+    skos:prefLabel "nic" ;
+    skos:note "a device for interfacing between a server and a network " ;
+    logset:aspectOf :network ;
+    logset:aspectOf :server ;
     .
 
 :computeNode
@@ -182,6 +281,7 @@
     skos:prefLabel "network" ;
     skos:note "any network within or between facilities" ;
     logset:aspectOf :facility ;
+    logset:aspectOf :cluster ;
     .
 
 :hsn
@@ -190,13 +290,6 @@
     skos:narrower :network ;
     skos:note "the high speed network linking components of a cluster" ;
     logset:aspectOf :cluster ;
-    .
-
-:aries
-    a logset:SubjectType ;
-    skos:prefLabel "aries" ;
-    skos:narrower :hsn ;
-    skos:note "Cray Aries high-speed network" ;
     .
 
 # to do:
@@ -217,7 +310,7 @@
     logset:aspectOf :cluster ;
     .
 
-:lustre_filesystem
+:lustreFilesystem
     a logset:SubjectType ;
     skos:prefLabel "lustre filesystem" ;
     skos:narrower :filesystem ;
@@ -226,7 +319,7 @@
     logset:aspectOf :cluster ;
     .
 
-:gpfs_filesystem
+:gpfsFilesystem
     a logset:SubjectType ;
     skos:prefLabel "gpfs filesystem" ;
     skos:narrower :filesystem ;
@@ -237,7 +330,7 @@
 
 # the following illustrate that there might be a need for some relationship
 # between the purpose of a storage system and its implementation
-:home_storage
+:homeStorage
     a logset:SubjectType ;
     skos:prefLabel "home storage" ;
     skos:narrower :storage ;
@@ -246,7 +339,7 @@
     logset:aspectOf :cluster ;
     .
 
-:work_filesystem
+:workFilesystem
     a logset:SubjectType ;
     skos:prefLabel "work filesystem" ;
     skos:narrower :filesystem ;
@@ -255,7 +348,7 @@
     logset:aspectOf :cluster ;
     .
 
-:burst_buffer
+:burstBuffer
     a logset:SubjectType ;
     skos:prefLabel "burst buffer" ;
     skos:narrower :storage ;
@@ -263,16 +356,23 @@
     logset:aspectOf :cluster ;
     .
 
-:batch_system
+:batchSystem
     a logset:SubjectType ;
     skos:prefLabel "batch system" ;
     logset:aspectOf :cluster ;
     .
 
+:scheduler
+    a logset:SubjectType ;
+    skos:prefLabel "scheduler" ;
+    logset:aspectOf :batchSystem ;
+    .
+
+
 :slurm
     a logset:SubjectType ;
     skos:prefLabel "slurm batch system" ;
-    skos:narrower :batch_system ;
+    skos:narrower :batchSystem ;
     logset:aspectOf :cluster ;
     .
 
