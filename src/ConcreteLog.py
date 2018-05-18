@@ -23,7 +23,7 @@ class Temporal(Node):
     required_properties = set(getters.keys())
 
     @property
-    def uri(self) -> str:
+    def uri(self):
         if self._uri is None:
             self._uri = BNode()
         return self._uri
@@ -137,8 +137,8 @@ class ConcreteLog(Node):
 
     def add_to_graph(self, context:Context=None):
         super().add_to_graph(context)
-        dcat = graph.getns('dcat')
-        self.graph.add( (context['logset'], dcat.distribution, self.uri) )
+        dcat = getns('dcat')
+        self.graph.add( (context['logset'].uri, dcat.distribution, self.uri) )
 
 
 

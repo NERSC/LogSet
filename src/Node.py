@@ -78,26 +78,36 @@ class Node:
         return graph.Graph.the_graph
 
     #def __init__(self, properties:PropertyDict = None) -> None: 
-    def __init__(self, properties:MultiDict = None) -> None: 
+    def __init__(self, properties:MultiDict = None, **kwargs) -> None: 
         # lazy getting of uri is going to be common enough to just build it into the base class:
         self._uri = None
         self._namespace = None
         self._label = None
 
-        if properties is not None and 'uri' in properties:
-            logging.debug("setting uri from properties: {0}".format(properties['uri']))
-            #self._uri = properties.pop('uri')[0]
-            self._uri = properties.one('uri')
-            properties.remove('uri')
-
-        if properties is not None and 'namespace' in properties:
-            logging.debug("setting namespace from properties: {0}".format(properties['namespace']))
-            #self._uri = properties.pop('uri')[0]
-            self._namespace = properties.one('namespace')
-            properties.remove('namespace')
-
         # eg "dct:title": set(Literal("my title"))
         self.properties = MultiDict(properties) 
+        for key,val in kwargs.items():
+            self.properties.add(key, val)
+
+        if 'uri' in self.properties:
+            self._uri = self.properties.one('uri')
+            self.properties.remove('uri')
+
+        if 'namespace' in self.properties:
+            self._namespace = self.properties.one('namespace')
+            self.properties.remove('namespace')
+
+#        if properties is not None and 'uri' in properties:
+#            logging.debug("setting uri from properties: {0}".format(properties['uri']))
+#            #self._uri = properties.pop('uri')[0]
+#            self._uri = properties.one('uri')
+#            properties.remove('uri')
+#
+#        if properties is not None and 'namespace' in properties:
+#            logging.debug("setting namespace from properties: {0}".format(properties['namespace']))
+#            #self._uri = properties.pop('uri')[0]
+#            self._namespace = properties.one('namespace')
+#            properties.remove('namespace')
 
         # all attributes we have a getter for should have an
         # entry in properties, even if it is empty:
@@ -499,10 +509,10 @@ class Node:
         if multi:
             default_prompt  = "Please select one or more {0} "
             default_prompt += "(space-separated{1} or empty when done) "
-            ui_method = UI.multi_select
+            #ui_method = UI.multi_select
         else:
             default_prompt = "Please select a {0}{1}"
-            ui_method = UI.select
+            #ui_method = UI.select
 
         prompt_new = ", or (n)ew " if allow_create else ""
         additional = ['n'] if allow_create else []
@@ -511,7 +521,10 @@ class Node:
                   cls.prompts.get(predicate) or
                   default_prompt).format(label,prompt_new)
 
-        selection = list([ui_method(prompt, known, *additional)]) 
+        if multi:
+            selection = UI.multi_select(prompt, known, *additional) 
+        else:
+            selection = [ UI.select(prompt, known, *additional) ]
         
         while True:
             # loop so user can create multiple new entries
@@ -529,10 +542,12 @@ class Node:
                     new.add_to_graph(context)
                     uri = new.uri
                 else:
+                    logging.info("got choice {0} from selection {1}".format(str(choice), str(selection)))
                     obj = known[choice]
                     uri = obj.uri 
                 retval.add(uri)
             selection = UI.multi_select("more? ", known, 'n') if multi else []
+            #selection = ui_method("more? ", known, 'n') if multi else []
         return retval
 
 

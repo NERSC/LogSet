@@ -53,6 +53,7 @@ class Catalog(Command):
         name = args.namespace[0][nstart:nend]
         ns = rdflib.Namespace(base+name+'#')
         uri = ns[name]
+        #logging.info("logset uri is {0}".format(uri))
         catalog = args.catalog[0] if args.catalog else None
 
         # flatten additional urls into a single list:
@@ -68,8 +69,8 @@ class Catalog(Command):
             raise Exception(msg)
 
         g = graph.construct(*urls, spider=True)
-        print("the graph is now: {0}".format(graph.Graph.the_graph))
-        newindex = LogSet(uri)
+        #print("the graph is now: {0}".format(graph.Graph.the_graph))
+        newindex = LogSet(uri=uri)
         logging.debug("created a Logset newindex: {0}".format(str(newindex)))
         newindex.add_to_graph()
 

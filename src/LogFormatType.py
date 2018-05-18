@@ -27,7 +27,7 @@ class LogFormatInfoKey(Node):
     label_alternate = "this formatinfo"
 
     @property
-    def uri(self) -> str:
+    def uri(self):
         if self._uri is None:
             self._uri = BNode()
         return self._uri

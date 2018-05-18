@@ -102,7 +102,7 @@ def _find_handlers():
                 if not name.startswith('_'):
                     thing = m.__dict__[name]
                     if inspect.isclass(thing) and _handler_interface <= set(thing.__dict__):
-                        print("found class mplementing handler interface: " + str(thing.__dict__))
+                        #print("found class mplementing handler interface: " + str(thing.__dict__))
                         globals_[name] = thing
                         prefix,sep,key = thing.rdf_class.rpartition(':')
                         _constructors[key] = thing

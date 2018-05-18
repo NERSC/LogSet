@@ -149,17 +149,17 @@ class LogSet(Node):
     label_property:str = 'dct:title'
     label_alternate:str = 'this log set'
 
-    def __init__(self, uri:URIRef, 
-                 properties:MultiDict = None) -> None: 
-        super().__init__(properties)
-        uri_str = str(uri)
+    def __init__(self, properties:MultiDict = None, **kwargs) -> None: 
+        super().__init__(properties, **kwargs)
+        uri_str = str(self._uri)
         if '#' not in uri_str:
-            raise Exception("LogSet requires a URI in the form 'namespace#label'")
+            raise Exception("LogSet requires a URI in the form 'namespace#label' {0}".format(uri_str))
         cut = uri_str.rfind('#')+1
         
-        self._uri = uri
+        #self._uri = uri
         self.prefix = uri_str[cut:]
         self.namespace = rdflib.Namespace(uri_str[:cut])
+        #self._uri = self.namespace.uri
         self.graph.bind(self.prefix, self.namespace)
         #the_graph.bind(self.prefix, self.namespace)
 
