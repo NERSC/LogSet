@@ -69,11 +69,11 @@ def factory(rdf_class:str, target_url:str, fmtinfo:MultiDict):
     # only use the suffix part, to make it easier to to convert between 
     # expanded uris and shorthand ones
     key = re.split('[:|#]',rdf_class)[-1]
-    print(key)
-    print(_constructors)
-    print(rdf_class)
-    print(target_url)
-    print(fmtinfo)
+    #print(key)
+    #print(_constructors)
+    #print(rdf_class)
+    #print(target_url)
+    #print(fmtinfo)
     #print(properties)
     #raise Exception("what happened")
     #key = re.split('[:|#]',rdf_class)[-1]

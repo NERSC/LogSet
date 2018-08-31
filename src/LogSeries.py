@@ -33,7 +33,7 @@ from util import FileInfo, Context, MultiDict
 from Subject  import SubjectType
 from LogFormatType import LogFormatType
 import re
-from rdflib.term import Identifier
+from rdflib.term import Identifier, URIRef
 
 from typing import Set, List
 
@@ -209,7 +209,7 @@ class LogSeries(Node):
             self._uri = self.make_uri(self.label_property, ns)
         return self._uri
 
-    def identify_subjects(self, subject_list):
+    def identify_subjects(self, subject_list: List[URIRef]) -> URIRef:
         """ given a list of high-level subjects, look for specific subject that are
             a partOf one of these and an isSpecific of the subjecttypes relevant to
             this logseries. Returns a list of uris

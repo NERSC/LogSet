@@ -14,11 +14,16 @@ from ConcreteLog import ConcreteLog
 #import handlers
 from rdflib.term import Literal
 from handlers import UnsupportedLogFormatHandler
+import magic # requires python-magic (pip install --user python-magic)
 
 class FileBasedLogFormatType(LogFormatType):
     rdf_class = "logset:LogFormatType"
     rdf_superclass = "logset:LogFormatType"
     handler = None
+
+    def right_mime_type(self, f:FileInfo) -> bool:
+        mediatypes = self.properties['dcat:mediaType']
+        return magic.from_file(os.sep.join(f), mime=True) in mediatypes
 
     def catalog(self, candidates:Set[FileInfo], context:Context) -> Set[FileInfo]:
         filepatterns = context['filepatterns']
@@ -29,6 +34,11 @@ class FileBasedLogFormatType(LogFormatType):
             logging.info("candidates: {0}".format(candidates))
             logging.info("after filtering: " + str(filter(lambda x: regex.match(x.filename),candidates)))
             matching |= set(filter(lambda x: regex.match(x.filename),candidates))
+
+        # filter by MIMEtype:
+        mediatypes = self.properties['dcat:mediaType']
+        mimetest = lambda x: self.right_mime_type(x)
+        matching -= set(filter(mimetest, matching))
 
         # args for the LogFormatType that will handle the actual file/source:
         handler_args = { 'rdf_class':  context['logFormatType'], 
