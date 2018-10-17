@@ -6,7 +6,7 @@ import logging
 import sys
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="some usage text")
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument('-v','--verbose', action='count')
     common.add_argument('-u', '--url', nargs='+', action='append')
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     usage += "-u {0}/cray-dict.ttl -u {0}/nersc.ttl ".format(eg_path)
 
     for cmd in commands.commands:
-        usage += "{0:20s}{1}\n".format(cmd.command, cmd.purpose)
+#        usage += "{0:20s}{1}\n".format(cmd.command, cmd.purpose)
         cmd(subparsers, common)
 
     if len(sys.argv)==1:

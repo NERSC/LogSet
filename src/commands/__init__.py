@@ -3,6 +3,8 @@
 import collections 
 ArgDetails = collections.namedtuple('ArgDetails', 'short, long, nargs, required, help, example')
 
+import logging
+
 import sys
 from abc import ABC
 class Command(ABC):
@@ -11,6 +13,7 @@ class Command(ABC):
     usage = ""
     _args = []
     def __init__(self, subparsers, parent):
+        logging.debug("creating a {0} command".format(self.__class__.__name__)) 
         self.parser = subparsers.add_parser(self.command, help=self.usage, 
                                             epilog=self.epilog(), parents=[parent])
         for arg in self._args:
@@ -55,7 +58,8 @@ def _import_modules():
                     if not inspect.ismodule(thing):
                         globals_[name] = thing
                         __all__.append(name)
-                        if inspect.isclass(thing) and issubclass(thing,Command):
+                        if inspect.isclass(thing) and issubclass(thing,Command) and thing != Command:
+                            print("found a {0} command to register in {1}".format(thing.__name__, filename))
                             commands.append(thing)
 
 _import_modules()
