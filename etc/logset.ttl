@@ -48,7 +48,7 @@
 :LogSet
     a owl:Class ;
     rdfs:subClassOf dcat:Dataset ;
-    rdfs:comment ''' A LogSet is a dcat:Dataset of related logs (eg, the logs 
+    rdfs:comment """ A LogSet is a dcat:Dataset of related logs (eg, the logs 
                      from a Cray boot session on NERSC Cori - related in system
                      and access and timespan)
                      It is recommended but not enforced that a LogSet instance 
@@ -65,12 +65,12 @@
                      described as a :ConcreteLog, based on dcat:Distribution.
                      A LogSet is epected to be defined in its own index file
                      and included in a dcat:Catalog
-                 ''' ;
+                 """ ;
     .
 
 :LogSeries
     a owl:Class;
-    rdfs:comment ''' A "type" of logfile, eg a console or outage log. Might be
+    rdfs:comment """ A "type" of logfile, eg a console or outage log. Might be
                      specific to a type of system, or OS version, but common to
                      systems of that type (eg Cray with CNL6). Can be used by
                      tools to indicate how to handle a log. Must have a property
@@ -79,7 +79,7 @@
                      LogSeries that can be in multiple places and formats, eg a
                      text log on a server and an index in an ElasticSearch db.
                      A LogSeries is expected to be defined in a data dictionary
-                 ''' ;
+                 """ ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
         # any LogSeries must have *some* type of entries, and some might have 
@@ -102,7 +102,7 @@
 
 :LogFormatType
     a owl:Class ;
-    rdfs:comment ''' An entity representing how log data is organized, in order 
+    rdfs:comment """ An entity representing how log data is organized, in order 
                      to help tools decide how to handle a give log.  
                      For example, most logs are timestamped-line-per-entry but
                      some are a timestamped multiline block, others have a file
@@ -113,7 +113,7 @@
                      A LogFormatType is expected to be defined in a data 
                      dictionary and to correspond to a handler class for logs in
                      that format
-                 ''' ;
+                 """ ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
         owl:onProperty dcat:mediaType ;  # may specify a mime type
@@ -133,10 +133,10 @@
 
 :DataSource
     a owl:Class ;
-    rdfs:comment ''' An entity whether a LogSeries is in the form of files 
+    rdfs:comment """ An entity detailing how  whether a LogSeries is in the form of files 
                      (not necessarily local), or the output of a local command 
                      or a web API, or something else. 
-                 ''' ;
+                 """ ;
     .
     
 # Subject, SubjectType and InfoType help the system (and user) to guess and
@@ -332,10 +332,9 @@
     rdfs:range :Subject ;
     .
 
-# is this valid? 
 :partOf
     a owl:ObjectProperty ;
-    rdfs:subClassOf :affects ;
+    rdfs:subPropertyOf :affects ;
     rdfs:comment ''' like affects but for things that really are part of a strict hierarchy 
                  ''' ;
     rdfs:domain :Subject ;

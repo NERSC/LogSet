@@ -4,58 +4,56 @@
     things based on results of a query 
 """
 
-import logging
 import sys
-logging.debug(str(sys.version_info))
-if sys.version_info[0] < 3 or sys.version_info[1] < 5:
-    raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
+if sys.version_info < (3,5):
+    raise Exception("Requires python 3.5+")
 
-
+import logging
 import re
-from util import Context, MultiDict, ran_str, UI
-import rdflib
 from rdflib.term import Identifier, URIRef, Literal
-from typing import Dict,Set,Union,List,TypeVar
-#from graph import geturi, getns#, query
+from typing import Dict,Set,Union,List,TypeVar,Optional,ClassVar
+from util import Context, MultiDict, ran_str, UI
 import graph
 
 NodeType = TypeVar('NodeType',bound='Node')
 PropertyGetterDict = Dict[str, str] # predicate, name_of_getter
-PropertyValues = Set[Union[Identifier,'Node']]
+PropertyValue = Union[Identifier,'Node']
+PropertyValues = Set[PropertyValue] #Union[Identifier,'Node']]
 PropertyDict = Dict[str, PropertyValues]
 
 
 class Node:
-    #graph = graph.Graph.the_graph
+    """ A node in the global RDF graph """
 
     # what RDF class is this? (corresponds to "thing a class" in RDF). Note
     # that this is a string like "logset:ConcreteLog" - we won't know the 
     # URI until after the graph has been constructed
     # Should be concrete, ie vcard:Organization not vcard:Kind
-    rdf_class:str = None       # eg "foaf:Organization"
-    # certain node types are created as a specofoc class (eg foaf:Organization 
+    rdf_class: ClassVar[str] = ''       # eg "foaf:Organization"
+
+    # certain node types are created as a specific class (eg foaf:Organization 
     # for Agent), but when querying the graph we need to find any subclass of 
     # some superclass (eg foaf:Agent for Agent). If that is the case, the 
     # Node class should specify the superclass with:
-    rdf_superclass:str = None  # eg "foaf:Agent"
+    rdf_superclass: ClassVar[str] = ''  # eg "foaf:Agent"
 
     # when adding a Node to the graph, triples for a certain set of properties
-    # are expected (based on the type of Node). These might be obtained by 
+    # (based on the type of Node) are expected. These might be obtained by 
     # querying a file/source or asking the user or infering from context, etc.
-    # Each class specifies the expected preperties and how to obtain them via a
+    # Each class specifies the expected properties and how to obtain them via a
     # class-variable 'getters', which is a dict mapping a predicate (str) to 
     # the method (of self) that obtains it.
     # getter methods are called like:
     #   values:PropertyValues = self.getter(context:Context)
-    getters:PropertyGetterDict = None
+    getters: ClassVar[PropertyGetterDict] = {}
     # some predicates *must* be present, indicate these with:
-    required_properties:Set[str] = set()
+    required_properties: ClassVar[Set[str]] = set()
 
     # to support finding known nodes of a given type, Node classes should
     # define a sparql query that returns rows from which a Node can be 
     # instantiated. This is done by mapping each row to the finder_fields
     # and passing the result as a PropertyDict to __init__ (see method known())
-    finder_query:str = None
+    finder_query:str = ''
     finder_fields:List[str] = []
 
     # for 'select' and 'multi_select' getters, what target class is being selected? 
@@ -80,9 +78,9 @@ class Node:
     #def __init__(self, properties:PropertyDict = None) -> None: 
     def __init__(self, properties:MultiDict = None, **kwargs) -> None: 
         # lazy getting of uri is going to be common enough to just build it into the base class:
-        self._uri = None
-        self._namespace = None
-        self._label = None
+        self._uri: Optional[str] = None
+        self._namespace: Optional[str] = None
+        self._label: Optional[str] = None
 
         # eg "dct:title": set(Literal("my title"))
         self.properties = MultiDict(properties) 
@@ -216,7 +214,7 @@ class Node:
         
         curr_uri = None
         next_uri = None
-        mdict=None
+        mdict: MultiDict = None
         #for row in graph.Graph.the_graph.query(query):
         for row in graph.query(query):
             logging.debug("found {0}".format(str(row)))
@@ -247,14 +245,12 @@ class Node:
         #    logging.debug("making a {0} with props {1}".format(cls.__name__, str(props)))
         #    yield cls(properties=props)
             
-    def get_values(self, predicate:str, context:Context=None) -> PropertyValues:
+    def get_values(self, predicate:str, context:Optional[Context]=None) -> PropertyValues:
         """ return a set of values for a property """
         if context is None:
             context = Context(predicate=predicate)
         logging.debug("looking for {0} in {1}".format(predicate, str(self.properties)))
-        props = self.properties.get(predicate, None)
-        if props is None:
-            return None
+        props = self.properties.get(predicate)
         if len(props)==0:
             logging.debug("calling a getter for {0}".format(predicate))
             getter = getattr(self, self.getters[predicate])
@@ -264,7 +260,7 @@ class Node:
             logging.debug("now {0} has: {1}".format(predicate, str(self.properties[predicate])))
         return self.properties[predicate]
 
-    def get_one_value(self, predicate:str, context:Context=None) -> PropertyValues:
+    def get_one_value(self, predicate:str, context:Context=None) -> PropertyValue:
         values = self.get_values(predicate, context)
         if values is None or len(values)==0:
             return None
@@ -350,46 +346,6 @@ class Node:
 
         self._in_graph = True
 
-
-        #        if isinstance(v, Identifier):
-        #            Graph.graph.add( (self.uri, pred_uri, v) )
-        #        elif isinstance(v, Node):
-        #            Graph.graph.add( (self.uri, pred_uri, v.uri) )
-        #            v.add_to_graph(context)
-        #        else:
-        #            # I'm pretty sure this should never happen
-        #            raise Exception("oh oh! " + str(v) + " ... " + str(type(v)))
-        #    context.pop(('predicate',))
-        #context.pop(('node',))
-
-
-        #for predicate,values in self._properties.items():
-        #    context.push(predicate=predicate)
-        #    # need to convert eg foaf:name to an actual uri:
-        #    pred_uri = Graph.geturi(predicate)
-        #
-        #    if len(values)==0 and predicate in self.getters: 
-        #        getter = getattr(self, self.getters[predicate])
-        #        generator = (v for v in getter(context))
-        #    else:
-        #        generator = (v for v in values)
-        #    logging.debug("got a generator over values of {0}".format(str(predicate)))
-        #    # find all of the values before writing any of them:
-        #    for v in list(generator):
-        #        logging.debug("adding value {0} to predicate {1}".format(str(v),str(predicate)))
-        #        if isinstance(v, Identifier):
-        #            logging.info("adding identifier to graph: {0} {1} {2}".format(self.uri, predicate, v))
-        #            Graph.graph.add( (self.uri, pred_uri, v) )
-        #        elif isinstance(v, Node):
-        #            logging.info("adding node to graph: {0} {1} {2}".format(self.uri, predicate, v.uri))
-        #            Graph.graph.add( (self.uri, pred_uri, v.uri) )
-        #            v.add_to_graph(context)
-        #        else:
-        #            # I'm pretty sure this should never happen
-        #            raise Exception("oh oh! " + str(v) + " ... " + str(type(v)))
-        #    context.pop(('predicate',))
-
-
     # some common getters:
     def skip(self, context:Context) -> PropertyValues:
         """ if it's not there, don't include it """
@@ -439,21 +395,6 @@ class Node:
         predicate = context['predicate']
         label = self.label_alternate if predicate == self.label_property else self.label
         return self.select_from_known(context, label, multi=False)
-#        retval = set()
-#        target_cls = self.targets[predicate]
-#        known = list(target_cls.known())
-#        logging.debug("selecting from known: " + str(known))
-#        prompt = self.prompts.get(predicate) or "Please select a {0}"
-#        prompt = prompt.format(label) + ", or (n)ew"
-#        logging.debug("prompt is: " + prompt)
-#        choice = UI.select(prompt, known, 'n')
-#        if str(choice).lower() == 'n':
-#            new = target_cls()
-#            new.add_to_graph(context)
-#            retval.add(new)
-#        else:
-#            retval.add(known[choice])
-#        return retval
 
     #@classmethod
     def multi_select(self, context:Context) -> PropertyValues:
@@ -461,45 +402,13 @@ class Node:
         predicate = context['predicate']
         label = self.label_alternate if predicate == self.label_property else self.label
         return self.select_from_known(context, label)
-#        retval = set()
-#        predicate = context.get('predicate', None)
-#        target_cls = self.targets.get(predicate, self)
-#        known = list(target_cls.known())
-#        logging.info("found {0} items".format(str(len(known))))
-#        prompt = (context.get('prompt',None) or 
-#                 self.prompts.get(predicate) or 
-#                 "Please select one or more {0}")
-#        prompt = prompt.format(label)
-#        prompt += " (space-separated, or (n)ew, or empty when done) "
-#        selection = UI.multi_select(prompt, known, 'n')
-#        while True:
-#            # loop so user can create multiple new entries
-#            if len(selection)==0:
-#                break
-#            for choice in selection:
-#                if str(choice).lower() == 'n':
-#                    # now it gets giddyingly recursive, make a new target_cls Node 
-#                    # and add that:
-#                    classname = target_cls.__class__.__name__
-#                    label = UI.ask("please give the new {0} a label: ".format(classname))
-#                    props = {target_cls.label_property: [label]}
-#                    new = target_cls(properties=props) 
-#                    new.add_to_graph(context)
-#                    uri = new.uri
-#                else:
-#                    obj = known[choice]
-#                    uri = obj.uri 
-#                retval.add(uri)
-#                #self._properties.add(pred, uri)
-#            selection = UI.multi_select("more? ", known, 'n')
-#        return retval
 
     @classmethod
-    def select_from_known(cls, context:Context=None, label=None, multi=True, 
+    def select_from_known(cls, context:Context=Context(), label=None, multi=True, 
                           allow_create=True, filters:Dict[str,str]=dict()) -> PropertyValues:
         """ classmethod select getter ..."""
         retval = set()
-        predicate = context.get('predicate', None)
+        predicate = context.get('predicate')
         target_cls = cls.targets.get(predicate, cls)
         known = list(target_cls.known(filters))
 
@@ -517,7 +426,7 @@ class Node:
         prompt_new = ", or (n)ew " if allow_create else ""
         additional = ['n'] if allow_create else []
 
-        prompt = (context.get('prompt',None) or
+        prompt = (context.get('prompt') or
                   cls.prompts.get(predicate) or
                   default_prompt).format(label,prompt_new)
 
@@ -542,8 +451,9 @@ class Node:
                     new.add_to_graph(context)
                     uri = new.uri
                 else:
-                    logging.info("got choice {0} from selection {1}".format(str(choice), str(selection)))
-                    obj = known[choice]
+                    logging.info(f"got choice {choice} from selection {selection}")
+                    #obj = known[choice]
+                    obj = choice
                     uri = obj.uri 
                 retval.add(uri)
             selection = UI.multi_select("more? ", known, 'n') if multi else []

@@ -6,7 +6,7 @@ logging.debug(str(sys.version_info))
 if sys.version_info[0] < 3 or sys.version_info[1] < 5:
     raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
 
-from typing import Iterable, Dict
+from typing import Iterable, Dict, Any
 from collections.abc import Mapping
 class Context(Mapping):
     """ A dict-of-stacks: when adding/setting a key-value pair, the value is
@@ -37,6 +37,12 @@ class Context(Mapping):
     def __getitem__(self, key):
         # look at top of stack
         return self._storage[key][-1]
+
+    def get(self, key, default=None) -> Any:
+        try:
+            return self._storage[key][-1]
+        except KeyError:
+            return default
 
     def __iter__(self):
         # iterates through keys, so no change from basic dict

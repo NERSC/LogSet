@@ -146,9 +146,9 @@ class LogSeries(Node):
     label_property:str = 'rdfs:label'
     label_alternate:str = 'log series'
 
-    def __init__(self, properties:MultiDict = None) -> None: 
+    def __init__(self, properties:MultiDict = MultiDict()) -> None: 
         super().__init__(properties)
-        self._fmtInfo = None
+        self._fmtInfo = None # MultiDict()
         self._filePatterns = None
         self._logFormatType = None
 
@@ -156,7 +156,7 @@ class LogSeries(Node):
     @property
     def fmtInfo(self) -> MultiDict:
         if self._fmtInfo is None:
-            self._fmtInfo = MultiDict(None)
+            self._fmtInfo = MultiDict()
             for prop in self.get_values('logset:logFormatInfo'):
                 key,sep,val = prop.partition('=')
                 self._fmtInfo.add(key, val)

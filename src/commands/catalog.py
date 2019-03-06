@@ -56,17 +56,17 @@ class Catalog(Command):
         #logging.info("logset uri is {0}".format(uri))
         catalog = args.catalog[0] if args.catalog else None
 
-        # flatten additional urls into a single list:
-        urls = [u for urllist in args.url for u in urllist]
-        #urls = args.url[0] or []
-        logging.debug("got args: {0}".format(str(args)))
-        logging.debug("got urls: {0}".format(str(urls)))
-
         fname = '{0}.ttl'.format(name)
         if os.path.exists(fname):
             msg  = "{0} already exists, please move it or request ".format(fname)
             msg +=  "a different namespace and try again"
             raise Exception(msg)
+
+        # flatten additional urls into a single list:
+        urls = [u for urllist in args.url for u in urllist]
+        #urls = args.url[0] or []
+        logging.debug("got args: {0}".format(str(args)))
+        logging.debug("got urls: {0}".format(str(urls)))
 
         g = graph.construct(*urls, spider=True)
         #print("the graph is now: {0}".format(graph.Graph.the_graph))

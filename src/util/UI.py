@@ -45,11 +45,12 @@ def select(prompt:str, options:List, *additional:str) -> str:
         # offset back to 0:
         ichoice -= 1
         if ichoice >= 0 and ichoice < len(options):
-            return ichoice
+            #return ichoice
+            return options[ichoice]
         choices = ', '.join([c for c in additional])
         print("Not a valid selection, please select a number from the list above or one of: " + choices)
 
-def multi_select(prompt:str, options:List, *additional:str) -> str:
+def multi_select(prompt:str, options:List, *additional:str) -> List[str]:
     """ ask the user to choose options by number, and accept multiple options 
         as a space-separated list
     """
@@ -67,7 +68,8 @@ def multi_select(prompt:str, options:List, *additional:str) -> str:
                 continue
             ichoice = int(choice)
             if ichoice >= 1 and ichoice <= len(options)+1:
-                result.append(ichoice-1)
+                #result.append(ichoice-1)
+                result.append(options[ichoice-1])
                 continue
             print("{0} is not a valid selection, please try again".format(choice))
             break
