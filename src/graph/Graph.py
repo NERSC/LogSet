@@ -22,28 +22,29 @@ from typing import Set
 _parsed: Set[str] = set()
 _unparsed: Set[str] = set()
 
+
 # rdflib defines a bunch of namespaces, I want them to be available via 
 # lowercase prefixes / getns, but I don't want them automatically polluting 
-# a subgraph I'm intending to write to a file. So, keep track of the 
-# but not explicitly defined in a subgraph (because that 
-# is mostly for writing out indexes etc)
+# a subgraph I'm intending to write to a file. So, keep track of the well-
+# known namespaces and corresponding prefixes that will be used by but not
+# defined in a subgraph:
 _predefined_prefixes = {
-  'rdf': rdflib.namespace.RDF,
-  'rdfs': rdflib.namespace.RDFS,
-  'owl': rdflib.namespace.OWL,
-  'xsd': rdflib.namespace.XSD,
-  'foaf': rdflib.namespace.FOAF,
-  'skos': rdflib.namespace.SKOS,
-  'doap': rdflib.namespace.DOAP,
-  'dc': rdflib.namespace.DC,
-  'dct': rdflib.namespace.DCTERMS
+    'rdf': rdflib.namespace.RDF,
+    'rdfs': rdflib.namespace.RDFS,
+    'owl': rdflib.namespace.OWL,
+    'xsd': rdflib.namespace.XSD,
+    'foaf': rdflib.namespace.FOAF,
+    'skos': rdflib.namespace.SKOS,
+    'doap': rdflib.namespace.DOAP,
+    'dc': rdflib.namespace.DC,
+    'dct': rdflib.namespace.DCTERMS
 }
 
 _preferred_prefixes = {
-      'dcat':   'http://www.w3.org/ns/dcat#',
-      'vcard':  'https://www.w3.org/2006/vcard/ns',
-      'logset': base+'logset#',
-      'ddict':  base+'ddict#'
+    'dcat':   'http://www.w3.org/ns/dcat#',
+    'vcard':  'https://www.w3.org/2006/vcard/ns',
+    'logset': base+'logset#',
+    'ddict':  base+'ddict#'
 }
 
 #_added_prefixes = {}
@@ -232,7 +233,7 @@ def geturi(ident: Union[str,URIRef]) -> URIRef:
         ident = getns(ns)[rdf_thing]
     return ident
 
-# hmm, not reliable because rdflib makes up new prefies
+# hmm, not reliable because rdflib makes up new prefixes
 def get_shorthand(uri:Union[str,URIRef]) -> str:
     """ opposite of geturi - return it in prefix:name format """
     ns,sep,name = str(uri).rpartition('#')

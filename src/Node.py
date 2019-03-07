@@ -468,17 +468,26 @@ class Node:
             random characters
         """
         # make an rdf-friendly name:
-        name = re.sub('^[^A-Za-z]+|\W','',self.properties.one(prop,''))
-        if len(name)==0:
+        try:
+            name = re.sub('^[^A-Za-z]+|\W','',self.properties.one(prop))
+        except KeyError:
             name = ran_str(8)
-        else:
-            # does it exist already?
-            logging.info("makeing a uri in namespace {0}".format(namespace))
-            for existing in self.graph.predicate_objects(namespace[name]):
-                # yep, better choose a new name
-                name = '{0}_{1}'.format(name, ran_str(4))
-                break
-        logging.info("makeuri returning {0}".format(name))
+
+        # does it exist already?
+        while existing in self.graph.predicate_objects(namespace[name]):
+            # yep, choose a new name by adding some random characters to the end
+            name = '{0}_{1}'.format(name, ran_str(4))
+
+#        if len(name)==0:
+#            name = ran_str(8)
+#        else:
+#            # does it exist already?
+#            logging.info("makeing a uri in namespace {0}".format(namespace))
+#            for existing in self.graph.predicate_objects(namespace[name]):
+#                # yep, better choose a new name
+#                name = '{0}_{1}'.format(name, ran_str(4))
+#                break
+#        logging.info("makeuri returning {0}".format(name))
         return namespace[name] 
 
 

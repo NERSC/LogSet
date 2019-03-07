@@ -52,7 +52,8 @@ class FileBasedLogFormatType(LogFormatType):
         common_properties = MultiDict()  
         common_properties.add('logset:isInstanceOf', context['logseries_uri'])
         common_properties.add('dcat:accessURL', context['dcat:accessURL'])
-        common_properties.add_values('logset:subject', context['subjects'])
+        #common_properties.add_values('logset:subject', context['subjects'])
+        common_properties.add('logset:subject', *context['subjects'])
         common_properties.add('namespace', context['namespace'])
         logging.info("logset for concretelog has: {0}".format(context['logset']))
 

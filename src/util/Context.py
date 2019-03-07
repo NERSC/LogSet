@@ -1,40 +1,41 @@
 #!/usr/bin/env python3
 
-import logging
 import sys
-logging.debug(str(sys.version_info))
-if sys.version_info[0] < 3 or sys.version_info[1] < 5:
-    raise Exception("Requires python 3.5+, try module load python/3.6-anaconda-4.4")
+if sys.version_info < (3,5):
+    raise Exception("Requires python 3.5+")
 
-from typing import Iterable, Dict, Any
-from collections.abc import Mapping
+import logging
+
+from typing import Iterable, Dict, Any, Tuple, Mapping
+#from collections.abc import Mapping
 class Context(Mapping):
     """ A dict-of-stacks: when adding/setting a key-value pair, the value is
         pushed to a stack rather than overwriting the current value. And when 
         reading a value, Context returns the item on the top of the stack. 
         Setting values other than via push is not supported, and values can 
-        be reverted to their previous value with pop
+        be reverted to their previous value with pop.
+        The idea is that something can pass a context of "my own context plus 
+        these specifics" by pushing the specifics onto the context, and 
+        popping them off afterwards
+        A Context can be created from a Mapping (including another Context),
+        and all keys should be strings
     """
-    def __init__(self, *args, **kwargs):
-        for arg in args:
-            if arg is None:
-                self._storage = dict()
-            elif isinstance(arg, Context):
-                self._storage = dict()
-                # this needs to be a deep-ish copy so that each stack in
-                # _storage is copied, not just the _storage dict:
-                for key,stack in arg._storage.items():
-                    self._storage[key] = list(stack) 
-            elif isinstance(arg, dict):
-                self._storage = { key: [ arg[key] ] for key in arg }
+    _storage: Dict[str,Any]
+    def __init__(self, _source: Mapping[str,Any] = {}, **kwargs: Any):
+        if _source:
+            if isinstance(_source, Context):
+                # semi-deep copy: copy each stack in _storage
+                self._storage = { 
+                    key: list(stack) for key,stack in _source._storage.items() 
+                }
             else:
-                self._storage = { pair[0]: [ pair[1] ] for pair in arg }
-            break
+                # make a stack for each item in the incoming dict/Mapping
+                self._storage = { key: [ _source[key] ] for key in _source }
         else:
             # a bunch of key=value arguments:
             self._storage = { key: [ value ] for key,value in kwargs.items() }
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Any:
         # look at top of stack
         return self._storage[key][-1]
 
@@ -48,10 +49,11 @@ class Context(Mapping):
         # iterates through keys, so no change from basic dict
         return iter(self._storage) 
 
-    def __len__(self):
+    def __len__(self) -> int:
+        # number of stacks, no information about depth
         return len(self._storage)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._storage)
 
     def push(self, *args:Dict, **kwargs):
@@ -67,59 +69,43 @@ class Context(Mapping):
                 self._storage[key] = []
             self._storage[key].append(value)
 
-    def pop(self, keys:Iterable):
-        retval = []
+    def pop(self, keys:Iterable) -> Tuple:
+        retval = tuple(self._storage[key].pop() for key in keys)
+        # clean up any empty stacks:
         for key in keys:
-            retval.append(self._storage[key].pop())
-            if len(self._storage[key])==0:
+            if not self._storage[key]:
                 del(self._storage[key])
-        return tuple(retval)
+        return retval
 
 
 import unittest
 class TestContext(unittest.TestCase):
-            
-    def test_create_from_list(self):
-        letters = 'abcdefg'
-        l = [ (i, letters[i]) for i in range(len(letters)) ] 
-        c = Context(l)
-        for i in range(len(letters)):
-            self.assertEqual(c[i],letters[i])
 
     def test_create_from_dict(self):
-        letters = 'abcdefg'
-        d = { i: letters[i] for i in range(len(letters)) } 
+        d = { l: i for i,l in enumerate('abcdefg') }  
         c = Context(d)
-        for i in range(len(letters)):
-            self.assertEqual(c[i],letters[i])
+        for key in d:
+            self.assertEqual(d[key], c[key])
 
     def test_create_from_kwargs(self):
         c = Context(this=1, that=2, the_other=3)
-        self.assertEqual(c['this'], 1)
+        self.assertEqual(c['that'], 2)
 
     def test_create_from_context(self):
-        letters = 'abcdefg'
-        l = [ (letters[i], i) for i in range(len(letters)) ] 
-        c1 = Context(l)
-
+        c1 = Context({ l: i for i,l in enumerate('abcdefg') })
         c2 = Context(c1)
         self.assert_looks_equal(c1,c2)
 
         c2.push(a=99, b=111)
         self.assert_looks_different(c1,c2)
-        #print(c1)
-        #print(c2)
-        #self.assertNotEqual(c1['a'], c2['a'])
-        #self.assertNotEqual(c1['b'], c2['b'])
 
     def test_create_empty(self):
         c1 = Context()
-        c2 = Context(None)
+        assert len(c1)==0
+        assert not c1
 
     def test_push_and_pop(self):
-        letters = 'abcdefg'
-        l = [ (letters[i], i) for i in range(len(letters)) ] 
-        c1 = Context(l)
+        c1 = Context({ l: i for i,l in enumerate('abcdefg') })
         c2 = Context(c1)
 
         c2.push(a=99, b=111)
@@ -137,16 +123,13 @@ class TestContext(unittest.TestCase):
 
 
     def test_get(self):
-        letters = 'abcdefg'
-        l = [ (letters[i], i) for i in range(len(letters)) ] 
-        c1 = Context(l)
+        c1 = Context({ l: i for i,l in enumerate('abcdefg') })
         self.assertTrue(c1.get('d', None) == 3)
         self.assertTrue(c1.get('k', None) is None)
+        self.assertTrue(c1.get('k', 3) == 3)
 
     def test_cannot_directly_set(self):
-        letters = 'abcdefg'
-        l = [ (letters[i], i) for i in range(len(letters)) ] 
-        c1 = Context(l)
+        c1 = Context({ l: i for i,l in enumerate('abcdefg') })
         def try_setting(ctx, key, val):
             ctx[key] = val
         self.assertRaises(TypeError, try_setting, c1, 'k', 99) 
@@ -154,17 +137,17 @@ class TestContext(unittest.TestCase):
 
     # some utility functions for comparing contexts:
     def assert_looks_equal(self, c1, c2):
-        for i in c1:
-            self.assertEqual(c1[i], c2[i])
-        for i in c2:
-            self.assertEqual(c1[i], c2[i])
+        for key in c1:
+            self.assertEqual(c1[key], c2[key])
+        for key in c2:
+            self.assertEqual(c1[key], c2[key])
 
     def assert_looks_different(self, c1, c2):
         equal = True
-        for i in c1:
-            equal = equal and c1[i]==c2[i]
-        for i in c2:
-            equal = equal and c1[i]==c2[i]
+        for key in c1:
+            equal = equal and c1[key]==c2[key]
+        for key in c2:
+            equal = equal and c1[key]==c2[key]
         self.assertFalse(equal)
 
 
