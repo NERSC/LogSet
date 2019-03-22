@@ -358,7 +358,14 @@
     rdfs:domain :Subject ;
     rdfs:range :Subject ;
     .
-    
+
+:endPointOf:
+    a owl:ObjectProperty ;
+    rdfs:comment """ endpoint of something, primarily a network link
+                 """ ;
+    rdfs:domain :Subject ;
+    rdfs:range :Subject ;
+    .
 
 :relevantLogSeries
     a owl:ObjectProperty ;
