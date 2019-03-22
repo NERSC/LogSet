@@ -11,13 +11,13 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 # owl adds a more constrained formal description logic for classes:
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-# dublin core terms, form base of dcat vocab:
+# dublin core terms, these form base of dcat vocab:
 @prefix dct: <http://purl.org/dc/terms/> .
 # to compare dateTime types:
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 # the dataset definition is derived from the Data Catalog Vocabulary, a single
-# dataset is a subtype of dcat:Dataset and can be managed as part of a 
+# dataset (LogSet) is a subtype of dcat:Dataset and can be managed as part of a 
 # dcat:Catalog and published/accessed as a dcat:Distribution
 # (note that Catalogs can link to other Catalogs, and to rdf descriptions
 # of Subjects such as "Cori", "cscratch" and their relationships, via 
@@ -42,13 +42,14 @@
     a owl:Ontology ;
     dct:title "the LogSet vocabulary" ;
     rdfs:label "LogSet" ;
+    owl:versionIRI <v0.3> ;
     .
 
 # the classes in our vocabulary:
 :LogSet
     a owl:Class ;
-    rdfs:subClassOf dcat:Dataset ;
-    rdfs:comment """ A LogSet is a dcat:Dataset of related logs (eg, the logs 
+    rdfs:subClassOf dcat:Catalog ;
+    rdfs:comment """ A LogSet is a collection of related logs (eg, the logs 
                      from a Cray boot session on NERSC Cori - related in system
                      and access and timespan)
                      It is recommended but not enforced that a LogSet instance 
@@ -63,19 +64,20 @@
                      data exists, they can contact someone to request access).
                      The actual files (or db queries etc) of the logs are 
                      described as a :ConcreteLog, based on dcat:Distribution.
-                     A LogSet is epected to be defined in its own index file
+                     A LogSet is expected to be defined in its own index file
                      and included in a dcat:Catalog
                  """ ;
     .
 
 :LogSeries
     a owl:Class;
-    rdfs:comment """ A "type" of logfile, eg a console or outage log. Might be
+    rdfs:subClassOf dct:Standard ;
+    rdfs:comment """ A 'type' of logfile, eg a console or outage log. Might be
                      specific to a type of system, or OS version, but common to
                      systems of that type (eg Cray with CNL6). Can be used by
                      tools to indicate how to handle a log. Must have a property
-                     indicating the "canonical" format that tools can assume on.
-                     Note: we may need to add an "equivalentTo" property for 
+                     indicating the 'canonical' format that tools can assume on.
+                     Note: we may need to add an 'equivalentTo' property for 
                      LogSeries that can be in multiple places and formats, eg a
                      text log on a server and an index in an ElasticSearch db.
                      A LogSeries is expected to be defined in a data dictionary
@@ -100,44 +102,14 @@
     ] ;
     .
 
-:LogFormatType
-    a owl:Class ;
-    rdfs:comment """ An entity representing how log data is organized, in order 
-                     to help tools decide how to handle a give log.  
-                     For example, most logs are timestamped-line-per-entry but
-                     some are a timestamped multiline block, others have a file
-                     per timestamp and contain a table, others hove no obvious 
-                     structure at all. 
-                     It is likely valuable for a LogFormatType to include a
-                     dcat:mediaType property, eg "text/plain" 
-                     A LogFormatType is expected to be defined in a data 
-                     dictionary and to correspond to a handler class for logs in
-                     that format
-                 """ ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty dcat:mediaType ;  # may specify a mime type
-        owl:maxCardinality 1 ;
-    ] ;
-#    rdfs:subClassOf [
-#        rdf:type owl:Restriction ;
-#        owl:onProperty :fmtInfoKey ;
-#        owl:minCardinality 1 ;
-#    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :dataSource ;
-        owl:cardinality 1 ;
-    ] ;
-    .
-
-:DataSource
-    a owl:Class ;
-    rdfs:comment """ An entity detailing how  whether a LogSeries is in the form of files 
-                     (not necessarily local), or the output of a local command 
-                     or a web API, or something else. 
-                 """ ;
-    .
+# use dcat:DataDistributionService
+#:DataSource
+#    a owl:Class ;
+#    rdfs:comment """ An entity detailing how  whether a LogSeries is in the form of files 
+#                     (not necessarily local), or the output of a local command 
+#                     or a web API, or something else. 
+#                 """ ;
+#    .
     
 # Subject, SubjectType and InfoType help the system (and user) to guess and
 # see relationships between ConcreteLogs and LogSeries across different
@@ -153,9 +125,9 @@
     a owl:Class ;
     #rdfs:subClassOf skos:Concept ;
     rdfs:subClassOf dct:PhysicalResource ;
-    rdfs:comment ''' A thing that a ConcreteLog is about, eg a system or 
-                     subsystem, or even a specific job 
-                 ''' ;
+    rdfs:comment """ A thing that a ConcreteLog is about, eg a system or 
+                     subsystem, or a specific job or service 
+                 """ ;
     # we require some sort of label, or there is no hope of identifying anything!
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
@@ -174,14 +146,14 @@
 :SubjectType
     a owl:Class ;
     rdfs:subClassOf skos:Concept ;
-    rdfs:comment ''' Subjects tend to have a type, eg "cluster", "filesystem",
-                     "batch system", "job", "compute node", "service node". Often
-                     a LogSeries can be characterized as being about a 
-                     SubjectType (eg "Lustre filesystem"), while the Logset 
-                     is about specific Subjects (eg "Cori"), from which the 
-                     system can guess that a ConcreteLog is about, eg "cori's 
-                     Lustre filesystem"
-                 ''' ;
+    rdfs:comment """ Subjects tend to be an instance of something, eg a 'cluster', 
+                     'filesystem', 'batch system', 'job', 'compute node', 'service 
+                     node'. Often a LogSeries can be characterized as being about 
+                     a SubjectType (eg 'Lustre filesystem'), while the Logset 
+                     is about specific Subjects (eg 'Cori'), from which the 
+                     system can guess that a ConcreteLog is about, eg 'cori's 
+                     Lustre filesystem'
+                 """ ;
     # a subjectype needs labelling, it is expected that labels would be applied
     # as skos:prefLabel, skos:altLabel - which are subclasses of rdfs:label
     rdfs:subClassOf [
@@ -194,10 +166,10 @@
 :InfoType
     a owl:Class ;
     rdfs:subClassOf skos:Concept ;
-    rdfs:comment ''' What the entries in a LogSeries are, eg "log_messages"
-                     or "job_records". As an skos:Concept, InfoTypes can be 
+    rdfs:comment """ What the entries in a LogSeries are, eg 'log_messages'
+                     or 'job_records'. As an skos:Concept, InfoTypes can be 
                      linked as skos:narrower/broader/related
-                 ''' ;
+                 """ ;
     . 
 
 
@@ -228,20 +200,49 @@
           # eg: <http://portal.nersc.gov/project/m888/resilience/entities/#edison>
         owl:minCardinality 1 ;
     ] ;
-    rdfs:comment ''' An actual, specific log, eg a File or database or web 
+    rdfs:comment """ An actual, specific log, eg a File or database or web 
                      service, with knowledge of how to handle this type of 
                      log in this format. Eg, the actual files in a p0 package
                      are ConcreteLog objects.
-                     Should have either a dcat:downloadURL or a dcat:accessURL.
-                 ''' ;
+                     Should have either a dcat:downloadURL or a dcat:accessURL
+                     and dcat:accessService
+                 """ ;
     .
+
+
+:LogFormatType
+    a owl:Class ;
+    rdfs:comment """ An entity representing how log data is organized, in order 
+                     to help tools decide how to handle a given log.  
+                     For example, most logs are timestamped-line-per-entry but
+                     some are a timestamped multiline block, others have a file
+                     per timestamp and contain a table, others hove no obvious 
+                     structure at all. 
+                     It is likely valuable for a LogFormatType to include a
+                     dcat:mediaType property, eg 'text/plain' 
+                     A LogFormatType is expected to be defined in a data 
+                     dictionary and to correspond to a handler class for logs in
+                     that format
+                 """ ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty dcat:mediaType ;  # may specify a mime type
+        owl:maxCardinality 1 ;
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty :dataSource ;
+        owl:cardinality 1 ;
+    ] ;
+    .
+
 
 :LogFormatInfoKey
     a owl:Class ;
-    rdfs:comment ''' A mechanism for LogFormatTypes to declare and describe
+    rdfs:comment """ A mechanism for LogFormatTypes to declare and describe
                      key/value pairs they need to find in the logFormatInfo
                      dictionary. Would mostly be in the form of a blank node
-                 ''' ;
+                 """ ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
         owl:onProperty rdfs:label ;
@@ -261,14 +262,17 @@
     rdfs:range :LogFormatInfoKey ;
     .
 
-## and the properties linking them:
 :isSpecific
     a owl:ObjectProperty, owl:FunctionalProperty ;
-    rdfs:comment ''' the type of a subject ''' ;
+    rdfs:comment "'' the SubjectType of a Subject "'' ;
     rdfs:domain :Subject ;
     rdfs:range :SubjectType ;
     .
 
+# FIXME should probably use dct:accrualPeriodicity for theis (a dct:Frequency)
+# annoyingly, there doesn't seem to be any good definition of that, I've seen an 
+# example using <http://purl.org/cld/freq/daily>, but that seems to be a broken 
+# link. But, eg <http://purl.org/never> might be a good way to indicate closed
 :isClosed
     a owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:comment ''' boolean value indicating that no new entries are arriving 
@@ -332,7 +336,8 @@
     rdfs:range :Subject ;
     .
 
-:partOf
+
+:hasPart
     a owl:ObjectProperty ;
     rdfs:subPropertyOf :affects ;
     rdfs:comment ''' like affects but for things that really are part of a strict hierarchy 
@@ -340,6 +345,20 @@
     rdfs:domain :Subject ;
     rdfs:range :Subject ;
     .
+
+
+# FIXME needs some more thinking
+:connectedTo
+    a owl:ObjectProperty ;
+    rdfs:comment """ how a Subject is connected to the rest of the world, eg a node is 
+                     connectedVia a link, and a job is connectedVia a Slurm instance. If
+                     the node fails, it will affect the link, if the link fails, it will 
+                     only indirectly affect the node (hmm is that true?)
+                 """ ;
+    rdfs:domain :Subject ;
+    rdfs:range :Subject ;
+    .
+    
 
 :relevantLogSeries
     a owl:ObjectProperty ;

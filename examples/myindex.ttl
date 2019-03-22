@@ -1,0 +1,79 @@
+@prefix : <http://example.com/myindex#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix ddict: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/ddict#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix vcard: <https://www.w3.org/2006/vcard/ns> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:myindex a logset:LogSet ;
+    logset:isClosed true ;
+    dct:contactPoint <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/nersc#SteveLeak> ;
+    dct:description "blah blah" ;
+    dct:publisher <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/nersc#nersc> ;
+    dct:title "my title" ;
+    dcat:distribution :console20170906,
+        :console20170907,
+        :messages20170906,
+        :messages20170907 .
+
+:console20170906 a logset:ConcreteLog ;
+    rdfs:label "console-20170906" ;
+    logset:estRecordCount 20.11320754716981 ;
+    logset:estRecordsPerDay 12256 ;
+    logset:isInstanceOf <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/cray-dict#console_logfile> ;
+    logset:subject <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/nersc#cori> ;
+    dct:temporal [ a dct:PeriodOfTime ;
+            logset:endDate "2017-09-06T15:22:42.809617-07:00"^^xsd:dateTime ;
+            logset:startDate "2017-09-06T15:20:21.827169-07:00"^^xsd:dateTime ] ;
+    dcat:accessURL "http://example.com/logs.tar.gz" ;
+    dcat:byteSize 1599 ;
+    dcat:downloadURL "console-20170906" .
+
+:console20170907 a logset:ConcreteLog ;
+    rdfs:label "console-20170907" ;
+    logset:estRecordCount 20.505725190839694 ;
+    logset:estRecordsPerDay 32334 ;
+    logset:isInstanceOf <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/cray-dict#console_logfile> ;
+    logset:subject <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/nersc#cori> ;
+    dct:temporal [ a dct:PeriodOfTime ;
+            logset:endDate "2017-09-07T00:01:31.068610-07:00"^^xsd:dateTime ;
+            logset:startDate "2017-09-07T00:00:37.627889-07:00"^^xsd:dateTime ] ;
+    dcat:accessURL "http://example.com/logs.tar.gz" ;
+    dcat:byteSize 2149 ;
+    dcat:downloadURL "console-20170907" .
+
+:messages20170906 a logset:ConcreteLog ;
+    rdfs:label "messages-20170906" ;
+    logset:estRecordCount 1453.1142098273574 ;
+    logset:estRecordsPerDay 796123 ;
+    logset:isInstanceOf <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/cray-dict#messages_logfile> ;
+    logset:subject <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/nersc#cori> ;
+    dct:temporal [ a dct:PeriodOfTime ;
+            logset:endDate "2017-09-06T15:29:17.665618-07:00"^^xsd:dateTime ;
+            logset:startDate "2017-09-06T15:26:39.977558-07:00"^^xsd:dateTime ] ;
+    dcat:accessURL "http://example.com/logs.tar.gz" ;
+    dcat:byteSize 218839 ;
+    dcat:downloadURL "messages-20170906" .
+
+:messages20170907 a logset:ConcreteLog ;
+    rdfs:label "messages-20170907" ;
+    logset:estRecordCount 876.8836565096952 ;
+    logset:estRecordsPerDay 596045077 ;
+    logset:isInstanceOf <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/cray-dict#messages_logfile> ;
+    logset:subject <file:///global/u1/s/sleak/Monitoring/Resilience/LogSet/examples/nersc#cori> ;
+    dct:temporal [ a dct:PeriodOfTime ;
+            logset:endDate "2017-09-07T00:00:01.135482-07:00"^^xsd:dateTime ;
+            logset:startDate "2017-09-07T00:00:01.008501-07:00"^^xsd:dateTime ] ;
+    dcat:accessURL "http://example.com/logs.tar.gz" ;
+    dcat:byteSize 126622 ;
+    dcat:downloadURL "messages-20170907" .
+

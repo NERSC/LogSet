@@ -1,0 +1,51 @@
+
+@prefix : <http://example.com/voltrino#> .
+@prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
+@prefix craydict: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/craydict#> .
+
+
+:c0-0c0s0 a craydict:slot
+    logset:hasPart :c0-0c0s0a0,
+    logset:hasPart :c0-0c0s0n0,
+
+:c0-0c0s0a0 a craydict:ariesRouter
+    logset:hasPart :c0-0c0s0a0l01
+    logset:hasPart :c0-0c0s0a0l02
+
+
+:c0-0c0s0n0 a craydict:node
+
+:c0-0c0s0a0l01 a craydict:tile
+    logset:connectedTo :blacklinkn0001
+
+c0-0c0s2 a craydict:slot
+    logset:hasPart :c0-0c0s2a0,
+
+:c0-0c0s2a0 a craydict:ariesRouter
+    logset:hasPart :c0-0c0s2a0l45
+
+:c0-0c0s2a0l45 a craydict:tile
+    logset:connectedTo :blacklinkn0001 
+
+:blacklinkn0001 a craydict:blackLink.
+
+
+select ?slot
+where {
+   ?slot :hasPart* ?tile .
+   ?tile logset:connectedTo :blacklinkn0001 .
+}
+
+select ?slot
+where {
+   ?slot :hasPart* ?mytile .
+   ?mytile logset:connectedTo ?somelink .
+#   ?mytile craydict:hasColor "black" .
+   ?somelink a craydict:blacklink .
+   ?somelink logset:connectedTo ?thetile .
+   ?thetile a craydict:tile .
+   ?theslot :hasPart* ?thetile .
+   ?theslot rdfs:label "c0-0c0s2" .
+}
+
+
