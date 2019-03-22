@@ -40,6 +40,12 @@
 :blueLink 
     a ddict:networkLink .
 
+:blackLink 
+    a ddict:networkLink .
+
+:greenLink 
+    a ddict:networkLink .
+
 
 # Cray XC systems have a specific service node called the smw (system management
 # workstation) node, which collects many logs
