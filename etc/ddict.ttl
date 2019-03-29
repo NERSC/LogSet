@@ -259,6 +259,15 @@
     logset:aspectOf :server ;
     .
 
+# maybe this should be something else
+:pcieLink
+    a logset:SubjectType ;
+    skos:prefLabel "pcieLink" ;
+    skos:note "interface between a node and a nic " ;
+    logset:aspectOf :network ;
+    logset:aspectOf :server ;
+    .
+
 :computeNode
     a logset:SubjectType ;
     skos:prefLabel "compute node" ;
