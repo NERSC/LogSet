@@ -1,0 +1,10 @@
+# TOML
+
+title = "default settings for LogSet tools"
+
+[persistence]
+    persistence = "SQLite3"
+    name = "logs"
+
+[namespaces]
+    base = "http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets"

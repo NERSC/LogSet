@@ -9,7 +9,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 import typing as t
-import typeguard as tg
 
 # registry and factory method to instantiate LogSetGraphs (subclasses of 
 # LogSetGraphBase for a specific storage method should override __init__,
@@ -30,12 +29,11 @@ def LogSetGraph(persistence: str='', # type of local persistence (store) to use
 import rdflib
 import urllib.error
 
-#FIXME this should be a config parameter
-import os
-etc: str = os.path.abspath(f"{os.path.dirname(__file__)}/../../etc")
+import config
 
 # namespace management: prefixes we prefer to associate with key namespaces:
-base: str = 'http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets'
+base: str = config.settings["namespaces"]["base"]
+# FIXME this should probably be in config too
 preferred_prefixes: t.Dict[str,str] = {
     str(rdflib.namespace.RDF):          'rdf',
     str(rdflib.namespace.RDFS):         'rdfs',
@@ -216,7 +214,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         logger.info("constructing the basic graph")
         for url, prefix in preferred_prefixes.items():
             self.namespace_manager.bind(prefix, url, override=True, replace=True)
-        self.extend(f"{etc}/logset#", f"{etc}/ddict#")
+        self.extend(f"{config.etc}/logset#", f"{config.etc}/ddict#")
         logger.info(f"after construction, graph has {len(self)} triples")
         logger.debug(f"and these namespaces: {list(self.namespace_manager.namespaces())}")
 
@@ -312,6 +310,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
 
 graph_classes[''] = LogSetGraphBase
 
+import os
 import shutil
 def remove(path: str):
     """ merciless removal of whatever is at path """
@@ -320,10 +319,12 @@ def remove(path: str):
     elif os.path.isdir(path):
         shutil.rmtree(path)
 
+_default_dbname = config.settings["persistence"]["name"]
+
 class LogSetGraphInSleepycat(LogSetGraphBase):
 
     def __init__(self, **kwargs):
-        self.path = kwargs.get('path', 'test.db')
+        self.path = kwargs.get('path', f"{_default_dbname}.db")
         super().__init__(store='Sleepycat', **kwargs)
         if self.clobber:
             remove(self.path)
@@ -340,7 +341,7 @@ class LogSetGraphInSQL(LogSetGraphBase):
 
     def __init__(self, **kwargs):
         store = rdflib.plugin.get("SQLAlchemy", rdflib.store.Store)()
-        self.path = kwargs.get('path', 'test.db')
+        self.path = kwargs.get('path', f"{_default_dbname}.db")
         super().__init__(store=store, **kwargs)
         if self.clobber:
             remove(self.path)
@@ -359,7 +360,7 @@ graph_classes['SQLite3'] = LogSetGraphInSQL
 class LogSetGraphInTurtleFile(LogSetGraphBase):
 
     def __init__(self, **kwargs):
-        self.path = kwargs.get('path', 'test.ttl')
+        self.path = kwargs.get('path', f"{_default_dbname}.ttl")
         super().__init__(**kwargs)
         if self.clobber:
             remove(self.path)
