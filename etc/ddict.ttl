@@ -8,127 +8,10 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 # declare myself and set a prefix:
-#@base <https://raw.githubusercontent.com/NERSC/LogSet/master/etc> .
 @base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/> .
 @prefix logset: <logset#> .
 @prefix : <ddict#> .
 
-# dataSource and LogFormatType correspond to classes rather than objects...
-:files
-    a logset:dataSource ;
-    rdfs:label "files" ;
-    dct:description ''' the data is in the form of files - not necessarily
-                        local, but as distinct from, eg, the output of 
-                        some command.
-                        The accessURL should indicate where the files can
-                        be gotten from, and downloadURL may be a relative
-                        path from the accessURL
-                    ''' ;
-    .
-
-:localCommands
-    a logset:dataSource ;
-    rdfs:label "local commands" ;
-    dct:description ''' the data is produced by running commands on some 
-                        system. The accessURL should give some hint about which system
-                    ''' ;
-    .
-
-:webAPI
-    a logset:dataSource ;
-    rdfs:label "web API" ;
-    dct:description ''' the data is produced by calling a web API
-                    ''' ;
-    .
-
-:timeStampedLogFile   
-    a logset:LogFormatType ; 
-    logset:dataSource :files ;
-    dcat:mediaType "text/plain" ;
-    rdfs:comment ''' A timeStampedLogFile expects two logset:logFormatInfo
-                     properties, for the "words" in each entry comprising:
-                        ts_words=  the timestamp (can be a range, eg 0-1)
-                        part_word= the component
-                     Note that "words" are whitespace-separated parts of 
-                     a line, and that he index is zero-based.
-                     The fields in a record are referred as:
-                        prefix - the part before timestamp or component
-                        timestamp
-                        component
-                        payload - the part after the timestamp and component
-                        all - the whole line
-                 ''' ;
-    logset:logFormatInfoKey [ a logset:LogFormatInfoKey ;
-        rdfs:label "ts_words" ;
-        dct:description ''' the "words" in an entry that comprise the timestamp.
-                            0-based, and can incorporate multiple words like 0-1
-                        ''' ;
-        ] ;
-    logset:logFormatInfoKey [ a logset:LogFormatInfoKey ;
-        rdfs:label "part_word" ;
-        dct:description ''' the "word" in an entry that indicates the component.
-                            0-based.
-                        ''' ;
-        ] ;
-    .
-
-:sqlite3              
-    a logset:LogFormatType ; 
-    logset:dataSource :files ;
-    dcat:mediaType "application/x-sqlite3" ;
-    .
-
-:filePerTimepoint     
-    a logset:LogFormatType ; 
-    logset:dataSource :files ;
-    dcat:mediaType "inode/directory" ;
-    .
-
-:unstructuredTextFile 
-    a logset:LogFormatType ; 
-    logset:dataSource :files ;
-    dcat:mediaType "text/plain" ;
-    .
-
-:binaryFile           
-    a logset:LogFormatType ; 
-    logset:dataSource :files ;
-    dcat:mediaType "application/octet-stream" ;
-    .
-
-# not everything is a (local or remote) file, eg for a slurm instance or NEWT call:
-# :slurmInstance
-#     a logset:LogFormatType ;
-#     logset:dataSource :localCommands ;
-#     .
-# 
-# :newtAPI
-#     a logset:LogFormatType ;
-#     logset:dataSource :webAPI ;
-#     dcat:mediaType "application/json" ;
-#     .
-
-:logMessages  
-    a logset:InfoType 
-    skos:prefLabel "log messages" ;
-    .
-
-:jobRecords
-    a logset:InfoType 
-    skos:prefLabel "job records" ;
-    .
-
-:annotations
-    a logset:InfoType .
-    skos:prefLabel "annotations" ;
-    .
-
-# annotations are a kind of log of their own, and can be related to other LogSets
-:annotationDB
-    a logset:LogSeries ;
-    logset:logFormat :sqlite3 ;
-    # would the schema count as logFormatInfo ? or the version?
-    .
 
 # some tags and corresponding python regex patterns to help in logseries identification:
 # tags must be mostly-alphanumeric, with a colon allowed/used to separate a label for
@@ -140,248 +23,250 @@
     a logset:Pattern ;
     logset:tag "<date:YYYYMMDD>" ;
     logset:regex "(?P<date>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])(?P<day>[0-3][0-9]))" ;
+    logset:inUri "<year><month><day>" ;
     .
 
 :timeYYYYMMDDtHHmmss
     a logset:Pattern ;
     logset:tag "<time:YYYYMMDDtHHmmss>" ;
     logset:regex "(?P<time>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])(?P<day>[0-3][0-9])t(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])(?P<second>[0-5][0-9]))" ;
+    logset:inUri "<year><month><day>t<hour><minute><seccond>" ;
     .
 
 :timeYYYYMMDDHHmmss
     a logset:Pattern ;
     logset:tag "<time:YYYYMMDDHHmmss>" ; 
     logset:regex "(?P<time>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])(?P<day>[0-3][0-9])(?P<hour>[01][0-9]|2[0-3])(?P<minute>[0-5][0-9])(?P<second>[0-5][0-9]))" ;
+    logset:inUri "<year><month><day><hour><minute><seccond>" ;
     .
 
 :system
     a logset:Pattern ;
     logset:tag "<system:>" ; 
     logset:regex "(?P<system>[a-z][a-z0-9]+)" ;
+    logset:inUri "<system>" ;
     .
 
 :label
     a logset:Pattern ;
     logset:tag "<label:>" ; 
     logset:regex "(?P<label>[a-z][a-z0-9]+)" ;
+    logset:inUri "<label>" ;
     .
 
 # same sample SubjectTypes and their relationships, to help in identifying the subject
 # of a given ConcreteLog:
-:facility
-    a logset:SubjectType ;
-    skos:prefLabel "facility" ;
-    skos:note "an HPC center, eg NERSC" ;
+:Facility
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "facility" ;
+    rdfs:comment "an HPC center, eg NERSC" ;
     .
 
-:cluster
-    a logset:SubjectType ;
-    skos:prefLabel "cluster" ;
-    skos:note "an HPC system" ;
-    logset:aspectOf :facility ;
+:Cluster
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "cluster" ;
+    rdfs:comment "an HPC system" ;
     .
 
-:node
-    a logset:SubjectType ;
-    skos:prefLabel "node" ;
-    skos:note ''' a server that is part of a cluster. 'node' implies a single  
+:Server
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "server" ;
+    rdfs:comment """ a thing that provides computing resources. Might be a standalone
+                     server, a part of a cluster, a virtual machine, etc. Can host or 
+                     be subdivided into other servers.
+                 """ ;
+    .
+
+:Node
+    a owl:Class ;
+    rdfs:subClassOf :Server ;
+    rdfs:label "node" ;
+    rdfs:comment """ a server that is part of a cluster. 'node' implies a single  
                   primary memory address space (possibly with additional address 
                   spaces belonging to attached devices eg accelerators), and
                   might be implemented as a complete server, a subdivision of 
                   a server (eg Cray XC blades have 4 nodes), or even a virtual 
                   machine
-              ''' ;
-    logset:aspectOf :cluster ;
+              """ ;
     .
 
-:blade
-    a logset:SubjectType ;
-    skos:prefLabel "blade" ;
-    skos:note "a server that is part of a chassis in a cluster" ;
-    logset:aspectOf :chassis ;
+:Blade
+    a owl:Class ;
+    rdfs:subClassOf :Server ;
+    rdfs:label "blade" ;
+    skos:altLabel "slot" ;
+    rdfs:comment "a server that is part of a chassis in a cluster" ;
     .
 
-:chassis
-    a logset:SubjectType ;
-    skos:prefLabel "chassis" ;
+:Chassis
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "chassis" ;
     skos:altLabel "cage" ;
-    skos:note "a housing with some shared infrastructure for multiple blades" ;
-    logset:aspectOf :cabinet ;
+    rdfs:comment "a housing with some shared infrastructure for multiple blades" ;
     .
 
-:cabinet
-    a logset:SubjectType ;
-    skos:prefLabel "cabinet" ;
+:Cabinet
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "cabinet" ;
     skos:altLabel "rack" ;
     skos:note "a standalone server" ;
-    logset:aspectOf :facility ;
+    rdfs:comment "a housing for server equipment" ;
     .
 
-:server
-    a logset:SubjectType ;
-    skos:prefLabel "server" ;
-    skos:broader :node ;
-    skos:note "a standalone server" ;
-    logset:aspectOf :facility ;
+:Switch
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "switch" ;
+    skos:altLabel "router" ;
+    rdfs:comment """ a network switch or router. The terms are used interchangably 
+                     often enough that we choose not to differentiate them
+                 """ ;
     .
 
-:switch
-    a logset:SubjectType ;
-    skos:prefLabel "switch" ;
-    skos:note ''' a network switch. The term is often used for a physical box 
-                  that performs both switching and routing, so we consider it 
-                  a broader concept than a router ''';
-    skos:broader :router
-    logset:aspectOf :network ;
+:NIC
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "nic" ;
+    rdfs:comment " a device for interfacing between a server and a network " ;
     .
 
-:router
-    a logset:SubjectType ;
-    skos:prefLabel "router" ;
-    skos:narrower :switch ;
-    skos:note "a device for routing between networks (often part of a switch)" ;
-    logset:aspectOf :network ;
+:Port
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "port" ;
+    rdfs:comment """ the interface between a network link and a component, eg a 
+                     switch typically has many ports, a nic typically has one or two
+                 """ ;
     .
 
-:networkLink
-    a logset:SubjectType ;
-    skos:prefLabel "networkLink" ;
+:NetworkLink
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "network link" ;
     skos:altLabel "link" ;
-    skos:note "a link between 2 points on a network" ;
-    logset:aspectOf :network ;
+    rdfs:comment "a link between 2 ports, usually (but not necessarily) a cable" ;
     .
 
-:nic
-    a logset:SubjectType ;
-    skos:prefLabel "nic" ;
-    skos:note "a device for interfacing between a server and a network " ;
-    logset:aspectOf :network ;
-    logset:aspectOf :server ;
+:ComputeNode
+    a owl:Class ;
+    rdfs:subClassOf :Node ;
+    rdfs:label "compute node" ;
+    rdfs:comment "a node primarily intended for compute workloads"
     .
 
-# maybe this should be something else
-:pcieLink
-    a logset:SubjectType ;
-    skos:prefLabel "pcieLink" ;
-    skos:note "interface between a node and a nic " ;
-    logset:aspectOf :network ;
-    logset:aspectOf :server ;
+:LoginNode
+    a owl:Class ;
+    rdfs:subClassOf :Node ;
+    rdfs:label "login node" ;
+    rdfs:comment """ a node conceptually in front of the compute nodes of a cluster,
+                     directly accessed by users and primarily intended for 
+                     interactive use
+                 """ ;
     .
 
-:computeNode
-    a logset:SubjectType ;
-    skos:prefLabel "compute node" ;
-    skos:narrower :node ;
+:ServiceNode
+    a owl:Class ;
+    rdfs:subClassOf :Node ;
+    rdfs:label "service node" ;
+    rdfs:comment """ a node set aside to provide some service to the cluster, eg 
+                     system management, I/O forwarding, etc
+                 """ ;
     .
 
-:loginNode
-    a logset:SubjectType ;
-    skos:prefLabel "login node" ;
-    skos:narrower :node ;
+:Network
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "network" ;
+    rdfs:comment "any network within or between facilities" ;
     .
 
-:serviceNode
-    a logset:SubjectType ;
-    skos:prefLabel "service node" ;
-    skos:narrower :node ;
+:HSN
+    a owl:Class ;
+    rdfs:subClassOf :Network ;
+    rdfs:label "hsn" ;
+    rdfs:comment "the high speed network linking components of a cluster" ;
     .
 
-:network
-    a logset:SubjectType ;
-    skos:prefLabel "network" ;
-    skos:note "any network within or between facilities" ;
-    logset:aspectOf :facility ;
-    logset:aspectOf :cluster ;
+:GbENetwork
+    a owl:Class ;
+    rdfs:subClassOf :Network ;
+    rdfs:label "gbe" ;
+    rdfs:comment "a network based on Gigabit Ethernet" ;
     .
 
-:hsn
-    a logset:SubjectType ;
-    skos:prefLabel "hsn" ;
-    skos:narrower :network ;
-    skos:note "the high speed network linking components of a cluster" ;
-    logset:aspectOf :cluster ;
+:IBFabric
+    a owl:Class ;
+    rdfs:subClassOf :Network ;
+    rdfs:label "infiniband" ;
+    rdfs:comment "a network based on Infiniband" ;
     .
 
-# to do:
-# :aries, :gemini, :infiniband, :gbe (:esnet? sort of a facility, and more specific)
-
-:storage
-    a logset:SubjectType ;
-    skos:prefLabel "storage" ;
-    skos:note "a data storage system (eg filesystem or tape archive)" ;
-    logset:aspectOf :facility ;
+:Storage
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "storage" ;
+    rdfs:comment "a data storage system (eg filesystem or tape archive)" ;
     .
 
-:filesystem
-    a logset:SubjectType ;
-    skos:prefLabel "filesystem" ;
-    skos:narrower :storage ;
-    logset:aspectOf :facility ;
-    logset:aspectOf :cluster ;
+:Filesystem
+    a owl:Class ;
+    rdfs:subClassOf :Storage ;
+    rdfs:label "filesystem" ;
+    rdfs:comment "storage that presents a filesystem"
     .
 
-:lustreFilesystem
-    a logset:SubjectType ;
-    skos:prefLabel "lustre filesystem" ;
-    skos:narrower :filesystem ;
-    skos:note "a Lustre high performance parallel filesystem" ;
-    logset:aspectOf :facility ;
-    logset:aspectOf :cluster ;
+:LustreFilesystem
+    a owl:Class ;
+    rdfs:subClassOf :Filesystem ;
+    rdfs:label "lustre filesystem" ;
+    rdfs:comment "a Lustre high performance parallel filesystem" ;
     .
 
-:gpfsFilesystem
-    a logset:SubjectType ;
-    skos:prefLabel "gpfs filesystem" ;
-    skos:narrower :filesystem ;
-    skos:note "a GPFS parallel filesystem" ;
-    logset:aspectOf :facility ;
-    logset:aspectOf :cluster ;
+:GPFSFilesystem
+    a owl:Class ;
+    rdfs:subClassOf :Filesystem ;
+    rdfs:label "gpfs filesystem" ;
+    rdfs:comment "a GPFS parallel filesystem" ;
     .
 
-# the following illustrate that there might be a need for some relationship
-# between the purpose of a storage system and its implementation
-:homeStorage
-    a logset:SubjectType ;
-    skos:prefLabel "home storage" ;
-    skos:narrower :storage ;
-    skos:note "a filesystem (or similar) prioritizing reliable storage and interactive use" ;
-    logset:aspectOf :facility ;
-    logset:aspectOf :cluster ;
+# storage can also be categorized by its purpose:
+:HomeStorage
+    a owl:Class ;
+    rdfs:subClassOf :Storage ;
+    rdfs:label "home storage" ;
+    rdfs:comment "storage prioritizing reliable storage and interactive use" ;
     .
 
-:workFilesystem
-    a logset:SubjectType ;
-    skos:prefLabel "work filesystem" ;
-    skos:narrower :filesystem ;
-    skos:note "a filesystem prioritizing fast, parallel I/O" ;
-    logset:aspectOf :facility ;
-    logset:aspectOf :cluster ;
+:WorkFilesystem
+    a owl:Class ;
+    rdfs:subClassOf :Filesystem ;
+    rdfs:label "work filesystem" ;
+    rdfs:comment "a filesystem prioritizing fast, parallel I/O" ;
     .
 
-:burstBuffer
-    a logset:SubjectType ;
-    skos:prefLabel "burst buffer" ;
-    skos:narrower :storage ;
-    skos:note "storage prioritizing latency and speed over size or longevity" ;
-    logset:aspectOf :cluster ;
+:BurstBuffer
+    a owl:Class ;
+    rdfs:subClassOf :Storage ;
+    rdfs:label "burst buffer" ;
+    rdfs:comment "storage prioritizing latency and speed over size or longevity" ;
     .
 
-:batchSystem
-    a logset:SubjectType ;
-    skos:prefLabel "batch system" ;
-    logset:aspectOf :cluster ;
+:BatchSystem
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject;
+    rdfs:label "batch system" ;
+    rdfs:comment "a service for managing cluster workload in the form of batch jobs" ;
     .
 
-:scheduler
-    a logset:SubjectType ;
-    skos:prefLabel "scheduler" ;
-    logset:aspectOf :batchSystem ;
-    .
-
-:slurm
-    a logset:SubjectType ;
-    skos:prefLabel "slurm batch system" ;
-    skos:narrower :batchSystem ;
-    logset:aspectOf :cluster ;
+:Scheduler
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject;
+    rdfs:label "scheduler" ;
+    rdfs:comment "a service for managing the when and where batch jobs are run" ;
     .
 
