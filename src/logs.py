@@ -30,6 +30,7 @@ if __name__ == '__main__':
     params = vars(parser.parse_args(args)).copy()
 
     config.update_settings(params)
+    config.apply_global_config()
     cmd = params['command']
     commands.commands[cmd].run(params)
 
