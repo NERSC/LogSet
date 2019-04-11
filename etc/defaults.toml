@@ -2,9 +2,11 @@
 
 title = "default settings for LogSet tools"
 
+verbosity = "warning"
+
 [persistence]
     persistence = "SQLite3"
-    name = "logs"
+    name = "logs.db"
 
 [namespaces]
     base = "http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets"
