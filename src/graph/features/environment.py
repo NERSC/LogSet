@@ -20,7 +20,7 @@ def before_scenario(context, scenario):
 
 import shutil
 def after_scenario(context, scenario):
-    if scenario.status == 'passed':
+    if scenario.status == 'passed' and os.path.exists(context.test_dir):
         print(f"removing {context.test_dir}")
         shutil.rmtree(context.test_dir)
     else:
