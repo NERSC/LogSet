@@ -5,6 +5,8 @@ import sys
 if sys.version_info < (3,6):
     raise Exception("Requires python 3.6+")
 
+import config
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -21,15 +23,14 @@ def LogSetGraph(persistence: str='', # type of local persistence (store) to use
                 create: bool=True,   # create local persistence if necessary?
                 clobber: bool=False  # overwrite/replace whatever is at path?
     ) -> 'LogSetGraphBase':
+    persistence=persistence or config.settings['persistence']['persistence']
+    path=path or config.settings['persistence']['name']
     T = graph_classes[persistence]
-    #logger.info(f"instantiating a {T.__name__} with {persistence}, {path}, {create}, {clobber}")
+    logger.info(f"instantiating a {T.__name__} with {persistence}, {path}, {create}, {clobber}")
     return T(persistence=persistence, path=path, create=create, clobber=clobber)
-
 
 import rdflib
 import urllib.error
-
-import config
 
 # namespace management: prefixes we prefer to associate with key namespaces:
 base: str = config.settings["namespaces"]["base"]
@@ -308,7 +309,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             #self.bind(prefix, rdflib.namespace.Namespace(ns), override=True, replace=True)
             logging.info(f"namespaces are now {readable(self.namespaces())}")
 
-graph_classes[''] = LogSetGraphBase
+graph_classes['None'] = LogSetGraphBase
 
 import os
 import shutil
