@@ -1,4 +1,4 @@
 #!/usr/bin/env python3
 
-import config
-import graph
+from . import config
+from . import graph

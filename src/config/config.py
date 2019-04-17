@@ -25,6 +25,8 @@ for _path in (os.path.join(etc, "defaults.toml"),
             deepmerge.always_merger.merge(settings, toml.load(f)) 
 
 import logging
+logger = logging.getLogger(__name__)
+
 import bidict
 _verbosity_levels = bidict.bidict({
     'debug': logging.DEBUG,
@@ -47,7 +49,7 @@ def setup_global_args(parser):
 import typing as t
 
 def update_settings(params: t.Dict[str,str]):
-    print(params)
+    logger.debug(f"updating settings with: {params}")
     global settings
 
     settings['persistence']['name'] = params['dbpath']

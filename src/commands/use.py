@@ -8,7 +8,7 @@ def setup_args(subparsers):
 
 import typing as t
 
-import graph
+from .. import graph
 
 def run(params: t.Dict[str,str]):
 

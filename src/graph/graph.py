@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """ logset-specific wrapper for RDFlib ConjunctiveGraph """
 
+# Naming conventions:
+#  path: str - a file path on a local filesystem
+#  url: str  - a protocol + path for an actual location, eg 
+#                file://blah.txt of file:///home/me/blah.txt or http://my.org/file
+#              If the protocol is missing, assume 'file://'
+#  uri: rdflib.URIRef - an identifier (not a string, and not necessarily an actual location)
+#  qname: str - prefix:name 
+
+
 import sys
 if sys.version_info < (3,6):
     raise Exception("Requires python 3.6+")
 
-import config
+from .. import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -72,110 +81,18 @@ external_namespaces: t.Set[str] = set(
 # .. and persistence can be a local ttl file too
 
 
-# default NamespaceManager doesn't handle prefix/namespace binds correctly,
-# also, none of the store plugins seem to either. Does the store really need to
-# keep track of the prefixes? (what does it use them for?). Try redefining 
-# the namespacemanager to handle binding locally-only.
-
-# namespace <-> prefix is a bidirectional 1:1 mapping
-import bidict
-import six
-
-class PrefixInUse(Exception):
-    """ Attempted to bind to an already-in-use prefix without replacing it """
-    pass
-
-class NamespaceAlreadyBound(Exception):
-    """ Attempted to bind an already-bound namespace without overriding the binding """
-    pass
-
-class LocalNSM(ns.NamespaceManager):
-    """ NamespaceManager that doesn't trust or use the store for namespace management
-        at all (ok, just a little: check the store for prefixes at initialization)
-        (Note: should perhaps add a method to write prefixes back to the store, but 
-        I think prefixes should be local to an application, not a store)
-    """
-
-    def __init__(self, graph):
-        self._namespaces: bidict.BidirectionalMapping[str,rdflib.URIRef] = bidict.bidict()
-        super().__init__(graph)
-
-    @property
-    def store(self):
-        """ the base NamespaceManager provides the graph's store as a property only to
-            (as far as I can see) allow some external thing to reach through the
-            NamespaceManager and the Graph and directly access the store. I think this
-            breaks encapsulation and introduces tight coupling, and the only
-            circumstance I can see it in use is in the sparql Prologue object, which
-            makes a dummy/empty Graph() for itself to use in this way.
-            At the cost of potentially breaking compatibility, I'm breaking the coupling
-            by making store point to self instead, so that any attempt to reach through
-            the namespacemanager will just get the namespacemanager
-        """
-        return self
-
-    def namespaces(self) -> t.Generator[t.Tuple[str, rdflib.URIRef],None,None]:
-        return ((prefix,namespace) for prefix,namespace in self._namespaces.items())
-
-    def prefix(self, namespace: rdflib.URIRef, default=None) -> str:
-        # for normalizeUri and compute_qname to use
-        return self._namespaces.inverse.get(namespace, default)
-
-    def namespace(self, prefix: str, default=None) -> rdflib.URIRef:
-        # for compute_qname to use
-        return self._namespaces.get(prefix, default)
-
-    def bind_from(self, graph):
-        if not graph.store:
-            return
-        for prefix, namespace in graph.store.namespaces():
-            self.bind(prefix, namespace)
-
-    def bind(self, prefix, namespace, override=True, replace=False):
-        ## see and fix /global/homes/s/sleak/Software/rdflib/rdflib/namespace.py
-        #raise NotImplementedError
-
-        prefix = prefix or '' # must be a string
-        namespace = rdflib.URIRef(six.text_type(namespace))
-
-        bound_namespace = self.namespace(prefix)
-        bound_prefix = self.prefix(namespace)
-
-        if bound_namespace is None and bound_prefix is None:
-            # easy case: neither prefix nor namespace is set yet
-            self._namespaces[prefix] = namespace
-            return
-
-        if bound_namespace==namespace and bound_prefix==prefix:
-            # another easy case: nothing to do:
-            return
-
-        if not replace and bound_namespace is not None:
-            # in the base class, the prefix would be modified until an unused one is
-            # found, and that would be bound to the namespace. Instead of quietly
-            # binding something different to what was requested, raise an error:
-            raise PrefixInUse(f"{prefix} is already bound to {bound_namespace}")
-
-        if not override:
-            if bound_prefix is not None and bound_prefix.startwith("_"):
-                # in the base class, if the prefix startswith("_") then override is 
-                # deemed true, with a comment about generated prefixes. I haven't found
-                # any notes about generated prefixes elsewhere, and grepping for "_" is
-                # a hopeless proposition, so I'll try to catch it in the wild and work 
-                # out where this undocumented spec came from:
-                raise Exception("Why is this here?")
-            if bound_prefix:
-                raise NamespaceAlreadyBound(f"{namespace} is already bound to {bound_prefix}")
-        self._namespaces[prefix] = namespace
-
-
 import rdflib.plugins.sparql as sparql
 import tempfile
+from . import local_nm
+
+class GraphExistsError(Exception):
+    """ Attempted to parse a url that is already in the local graph """
+    pass
 
 class LogSetGraphBase(rdflib.ConjunctiveGraph):
     """ a graph based on the LogSet vocabulary """
 
-    # rdflib.ConjunctiveGraph.__init__ doesn't take a NSM argument (why not?)
+    # rdflib.ConjunctiveGraph.__init__ doesn't take a NM argument (why not?)
     def __init__(self, **kwargs):
         """ kwargs can include rdflib ConjunctiveGraph args:
                 store,
@@ -190,10 +107,10 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         a = {arg:val for arg,val in kwargs.items() if arg in ('store', 'identifier')}
         super().__init__(**a)
 
-        # rdflib.ConjunctiveGraph.__init__ doesn't take a NSM argument but instead
+        # rdflib.ConjunctiveGraph.__init__ doesn't take a NM argument but instead
         # uses the Graph default, which is to instantiate a NamespaceManager lazily.
         # But NamespaceManager is flaky, so we'll use a local one:
-        self.namespace_manager = LocalNSM(self)
+        self.namespace_manager = local_nm.LocalNM(self)
         for p, ns in well_known_namespaces.items():
             self.namespace_manager.bind(p, ns, override=True, replace=True)
 
@@ -204,6 +121,9 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
     def __enter__(self):
         if len(self)==0:
             self._construct()
+        # on first open/entry, should probably sanity check that the graph?
+        # (or maybe, assume all is well and upon querying for info, then report
+        # "this graph has unknown parts")
         logger.info(f"on entry, graph has {len(self)} triples")
         logger.debug(f"and these namespaces: {list(self.namespace_manager.namespaces())}")
         return self
@@ -241,6 +161,13 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             rdfs:seeAlso properties in dcat:Catalog objects described in these
             urls
         """
+        # need to add some more smarts: it needs to parse each url into a
+        # named context, and it needs to add Asset descriptions for each url to 
+        # the default context. It also needs to first check the contents of what it
+        # parsed to see eg what the thing describes itself as, what it considers
+        # to be its uri/namespace, and to add an assetdestribution to the default
+        # context to record where it got this one from
+        #
         todo: t.Set[str] = set(url for url in urls)
         done: t.Set[str] = set(str(n[1]) for n in self.namespaces()) | external_namespaces
         while todo:
@@ -267,6 +194,63 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             todo.update(u for u in new_urls if u not in done)
         logger.info(f"after expand, graph has {len(self)} triples")
 
+    def merge(self, url: str) -> None:
+        """ incorporate the triples at url into this graph as a new context """
+        if not (url.startwith('http:') or url.startwith('https:')):
+            url = 'file://' + os.path.abspath(url.replace('file://', '', maxreplace=1))
+
+        uri = rdflib.URIRef(url)
+
+        # do we already have this uri?
+        sparql = """ SELECT ?uri WHERE {
+                       ?thing a adms:AssetDistribution .
+                       ?thing dcat:downloadURL ?uri .
+                     }
+                 """
+
+        if uri in self.default_context.query(sparql):
+            raise GraphExistsError(f"graph already has {uri}")
+
+        new_context = rdflib.BNode()
+        fmt = rdflib.util.guess_format(uri)
+        try:
+            logging.info(f"trying to parse {url} with format {fmt}")
+            g = self.parse(uri, format=fmt, publicID=new_context)
+        except (FileNotFoundError, urllib.error.HTTPError):
+            logging.info(f"trying again with .ttl suffix")
+            g = self.parse(f"{url.rstrip('#')}.ttl", format='turtle', publicID=new_context)
+        except:
+            raise
+
+        # describe the thing I just parsed:
+        self.add((new_context, 'rdf:type', 'adms:AssetDistribution'))
+        self.add((new_context, 'dcat:downloadURL',uri))
+
+        #FIXME finish this, break it into smaller parts and write some tests for it
+        # first: does it describe itself?
+#        new_local_namespaces: t.Set[rdflib.URIRef] = set()
+#        assets: t.Set[rdflib.URIRef] = set()
+#        for s in g.subjects():
+#            namespace, name = rdflib.namespaces.split_uri(s) 
+#            new_local_namespaces.add(rdflib.URIRef(namespace))
+#            if not name:
+#                assets.add(rdflib.URIRef(namespace))
+#
+#
+#        g = rdflib.Graph(namespace_manager=LocalNM())
+#        fmt = rdflib.util.guess_format(url)
+#        try:
+#            g.parse(url, format=fmt)
+#        except (FileNotFoundError, urllib.error.HTTPError):
+#            url = f"{url.rstrip('#')}.ttl"
+#            fmt = 'turtle'
+#            g.parse(url, format=fmt)
+#        except:
+#            raise
+#
+#        
+
+
     def _try_to_parse(self, url:str) -> None:
         fmt = rdflib.util.guess_format(url)
         try:
@@ -278,6 +262,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         except:
             raise
 
+    # FIXME with localnm this might not be needed
     def _canonicalize_namespaces(self) -> None:
         """ ensure the prefix we have for each namespace is predictable """
         readable = lambda seq: '\n'.join(str(i) for i in seq)
@@ -378,7 +363,7 @@ class LogSetGraphInTurtleFile(LogSetGraphBase):
             f.write(self.serialize(format='turtle').decode('ascii'))
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # when is it safe/ok to overwrite the file?
+        # FIXME when is it safe/ok to overwrite the file?
         with open(self.path, 'w') as f:
             f.write(self.serialize(format='turtle').decode('ascii'))
 
