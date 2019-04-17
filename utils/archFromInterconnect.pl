@@ -158,12 +158,32 @@ while(<>){
 }
 
 # ALL THE WRITEOUTS ARE HERE
+
+print "\@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+print "\@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n";
+print "\@prefix adms: <http://www.w3.org/ns/adms#> .\n";
+print "\@prefix dct: <http://purl.org/dc/terms/> .\n";
+print "\@prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .\n";
+print "\@prefix ddict: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/ddict#> .\n";
+print "\@prefix craydict: <http://FIXME/where/is/craydict/published#> .\n";
+print "\n";
+print "# declare myself and set a prefix:\n";
+print "\@base <http://FIXME/where/will/this/be/published> .\n";
+print "\@prefix : <FIXME-edison-arch#> .\n";
+print "\n";
+print ":\n";
+print "\ta adms:Asset ;\n";
+print "\tdct:title \"FIXME give this file a title\" ;\n";
+print "\trdfs:label \"FIXME short label\" ;\n";
+print "\t.\n";
+print "\n";
+
     
 foreach (sort { $b <=> $a } keys(%HoHcabinet) ){
     my $cab = $_;
     
 #    print "$cab is a cabinet with chassis:\n";
-    print ":$cab a ddict:cabinet\n";
+    print ":$cab a ddict:Cabinet ;\n";
     foreach (sort { $b <=> $a } keys %{ $HoHcabinet{$cab} } ){
 	my $chassis = $_;
 #	print "\t$chassis\n";
@@ -178,7 +198,7 @@ foreach (sort { $b <=> $a } keys(%HoHchassis) ){
     my $chassis = $_;
     
 #    print "$chassis is a chassis with slots:\n";
-    print ":$chassis a ddict:chassis\n";
+    print ":$chassis a ddict:Chassis ;\n";
     foreach (sort { $b <=> $a } keys %{ $HoHchassis{$chassis} } ){
 	my $slot = $_;
 	print "\tlogset:hasPart :$slot;\n";
@@ -190,7 +210,7 @@ foreach (sort { $b <=> $a } keys(%HoHchassis) ){
 foreach (sort { $b <=> $a } keys(%HoHslot) ){
     my $slot = $_;
 #    print "$slot is a slot with well known:\n";
-    print ":$slot a ddict:blade\n";
+    print ":$slot a ddict:Blade ;\n";
     for (my $i = 0; $i < 4; $i++){
 #	print "\t" . $slot . "n$i\n";
 	print "\tlogset:hasPart :$slot" . "n$i;\n";
@@ -205,7 +225,7 @@ foreach (sort { $b <=> $a } keys(%HoHslot) ){
 foreach (sort { $b <=> $a } keys(%HoHaries) ){
     my $aries = $_;
 #    print "$aries is a aries with tiles;\n";
-    print ":$aries a cray-dict:ariesRouter\n";
+    print ":$aries a craydict:AriesRouter ;\n";
     foreach (sort { $b <=> $a } keys %{ $HoHaries{$aries} } ){
 	my $tile = $_;
 #	print "\t$tile\n";
@@ -225,13 +245,13 @@ foreach (sort { $b <=> $a } keys(%HoHlink) ){
 #    print "\t" . $HoHlink{$link}{'E1'}. "\n";
 #    print "\t" . $HoHlink{$link}{'type'}. "\n";
     if ($HoHlink{$link}{'type'} =~ /BLU/){
-	print ":$link a cray-dict:blueLink .\n";
+	print ":$link a craydict:BlueLink .\n";
     }
     if ($HoHlink{$link}{'type'} =~ /GRE/){
-	print ":$link a cray-dict:greenLink .\n";
+	print ":$link a craydict:GreenLink .\n";
     }
     if ($HoHlink{$link}{'type'} =~ /BLK/){
-	print ":$link a cray-dict:blackLink .\n";
+	print ":$link a craydict:BlackLink .\n";
 
     }
     #skipping ptiles for now
@@ -241,7 +261,7 @@ print "\n";
 foreach (sort { $b <=> $a } keys(%endpoint) ){
     my $xendpoint = $_;
 #    print "<$endpoint> is an endpoint of link :\n"; 
-    print ":$xendpoint a cray-dict:ariesRouterTile\n";
+    print ":$xendpoint a craydict:AriesRouterTile ;\n";
 #    print "\t" . $endpoint{$endpoint}. "\n";
     print "\tlogset:endPointOf :" . $endpoint{$xendpoint} . ";\n";
     print "\t.\n";

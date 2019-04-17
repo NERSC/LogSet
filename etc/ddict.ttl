@@ -29,7 +29,7 @@
     a owl:Ontology ;
     dct:title "the base data dictionary for the LogSet vocabulary" ;
     rdfs:label "ddict" ;
-    owl:imports logset:
+    owl:imports logset: ;
     owl:versionIRI <v0.2> ;
     .
 

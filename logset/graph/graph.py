@@ -196,8 +196,8 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
 
     def merge(self, url: str) -> None:
         """ incorporate the triples at url into this graph as a new context """
-        if not (url.startwith('http:') or url.startwith('https:')):
-            url = 'file://' + os.path.abspath(url.replace('file://', '', maxreplace=1))
+        if not (url.startswith('http:') or url.startswith('https:')):
+            url = 'file://' + os.path.abspath(url.replace('file://', '', count=1))
 
         uri = rdflib.URIRef(url)
 
@@ -257,7 +257,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             logging.info(f"trying to parse {url} with format {fmt}")
             self.parse(url, format=fmt)
         except (FileNotFoundError, urllib.error.HTTPError):
-            logging.info(f"trying again with .ttl suffix")
+            logging.info(f"trying again with as {url.rstrip('#')}.ttl")
             self.parse(f"{url.rstrip('#')}.ttl", format='turtle')
         except:
             raise

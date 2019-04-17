@@ -3,9 +3,10 @@
 import pytest
 from . import local_nm
 
+import rdflib
+
 @pytest.fixture
 def make_nm():
-    import rdflib
     g = rdflib.Graph()
     return local_nm.LocalNM(g)
 
@@ -36,9 +37,9 @@ sample_prefixes = [
 ]
 
 urls = st.sampled_from(sample_urls)
-n3s = st.sampled_from( f"<{u}>" for u in sample_urls )
-urirefs = st.sampled_from( rdflib.URIRef(u) for u in sample_urls )
-namespaces = st.sampled_from( rdflib.Namespace(u) for u in sample_urls )
+n3s = st.sampled_from( [f"<{u}>" for u in sample_urls] )
+urirefs = st.sampled_from( [rdflib.URIRef(u) for u in sample_urls] )
+namespaces = st.sampled_from( [rdflib.Namespace(u) for u in sample_urls] )
 
 prefixes = st.sampled_from(sample_prefixes)
 
@@ -53,7 +54,7 @@ prefixes = st.sampled_from(sample_prefixes)
 #def test_decode_inverts_encode(s):
 #    assert decode(encode(s)) == s
 
-@hyp.given(prefixes, urls)
+@hyp.given(prefixes, n3s)
 def test_bind(prefix, url):
     print(f"testing with {prefix}, {url}")
     #def bind(self, prefix, namespace, override=True, replace=False):

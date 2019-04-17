@@ -9,10 +9,11 @@
 # logs find <something>    # return which parts of which logs have something
 # logs catalog <thing>     # create an rdf catalog 
 
-import config
 import argparse
-import commands
 import sys
+
+from logset import config
+from logset import commands
 
 if __name__ == '__main__':
     desc = __doc__

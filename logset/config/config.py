@@ -4,6 +4,8 @@ import sys
 if sys.version_info < (3,6):
     raise Exception("Requires python 3.6+")
 
+import typing as t
+
 import os
 _installdir = os.path.join(os.path.dirname(__file__), '..', '..')
 installdir: str = os.path.abspath(_installdir)
@@ -15,10 +17,10 @@ import deepmerge
 # TODO should make config forgiving wrt case sensitiy, eg interpret 'sqlite' as the 
 #      user probably expects
 
-settings = {}
+settings: t.Dict[str,t.Any] = {}
 
 for _path in (os.path.join(etc, "defaults.toml"),
-              os.path.join(os.getenv('HOME'), ".logs.toml"),
+              os.path.join(os.getenv('HOME') or '', ".logs.toml"),
               "logs.toml" ):
    if os.path.exists(_path):
         with open(_path) as f:
@@ -37,6 +39,8 @@ _verbosity_levels = bidict.bidict({
 })
 
 def setup_global_args(parser):
+    parser.add_argument('--no-local-persistence', '-n', dest='nolocal', default=False, 
+        action='store_true', help="memory-only")
     parser.add_argument('--local-persistence', '-p', dest='dbpath',
         help="path to file or database for local (cached) log metadata",
         default=settings['persistence']['name'])
@@ -52,6 +56,8 @@ def update_settings(params: t.Dict[str,str]):
     logger.debug(f"updating settings with: {params}")
     global settings
 
+    if params['nolocal']:
+        settings['persistence']['persistence'] = 'None'
     settings['persistence']['name'] = params['dbpath']
 
     verbosity_level = _verbosity_levels[settings['verbosity']]
