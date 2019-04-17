@@ -2,7 +2,7 @@
 # intended to support analysis of faults and failures.
 #
 # a client should be able to query a graph of logset objects to find, eg
-# logfiles and job records etc about a specific job. or affected by a 
+# logfiles and job records etc about a specific job. or affected by a
 # specific component failure
 
 # basic vocabularies used here:
@@ -35,7 +35,7 @@
 :
     a owl:Ontology ;
     dct:title "the LogSet vocabulary" ;
-    rdfs:label "LogSet" ;
+    rdfs:label "logset" ;
     owl:versionIRI <v0.3> ;
     .
 
@@ -54,13 +54,13 @@
 
 :Pattern
     a owl:Class ;
-    rdfs:comment """ Frequently specific subjects in a log or filenames relevant to a 
-                     LogSeries are identified via regex (eg a reference to 
-                     edison:nid00123 looks like 'nid00123', and a file called 
-                     'messages-20170129' is probably a messages logfile for Jan 29, 
-                     2017. Getting a correct regex for each thing is tedious and 
+    rdfs:comment """ Frequently specific subjects in a log or filenames relevant to a
+                     LogSeries are identified via regex (eg a reference to
+                     edison:nid00123 looks like 'nid00123', and a file called
+                     'messages-20170129' is probably a messages logfile for Jan 29,
+                     2017. Getting a correct regex for each thing is tedious and
                      unreliable, so we build a database of regexes with human-readable
-                     tags.  
+                     tags.
                  """ ;
     rdfs:subClassOf [
         rdf:type owl:Restriction ;
@@ -83,8 +83,8 @@
     a owl:DatatypeProperty ;
     rdfs:domain :Pattern ;
     rdfs:range rdfs:Literal ;
-    rdfs:comment """ a string that can appear in an identifyingPattern eg 
-                       <date:YYYYMM> 
+    rdfs:comment """ a string that can appear in an identifyingPattern eg
+                       <date:YYYYMM>
                  """ ;
     .
 
@@ -92,8 +92,8 @@
     a owl:DatatypeProperty ;
     rdfs:domain :Pattern ;
     rdfs:range rdfs:Literal ;
-    rdfs:comment """ A regex in Python syntax, eg 
-                       (?P<date>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2]) 
+    rdfs:comment """ A regex in Python syntax, eg
+                       (?P<date>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])
                  """ ;
     .
 
@@ -101,8 +101,8 @@
     a owl:DatatypeProperty ;
     rdfs:domain :Pattern ;
     rdfs:range rdfs:Literal ;
-    rdfs:comment """ How the match can be used in the URI/name of a thing eg 
-                       <year><month> 
+    rdfs:comment """ How the match can be used in the URI/name of a thing eg
+                       <year><month>
                  """ ;
     .
 
@@ -112,7 +112,7 @@
     a owl:Class ;
     rdfs:subClassOf dct:PhysicalResource ;
     rdfs:comment """ A thing that a ConcreteLog is about, eg a system or subsystem
-                     or a specific job or service (note that we slightly abuse 
+                     or a specific job or service (note that we slightly abuse
                      PhysicalResource to include some non-physical things here).
                  """ ;
     :recommendedProperty rdfs:label,
@@ -134,9 +134,9 @@
 
 :affects
     a owl:ObjectProperty ;
-    rdfs:comment """ Components in an HPC center are not a strict hierarchy, eg a 
+    rdfs:comment """ Components in an HPC center are not a strict hierarchy, eg a
                      filesystem might be shared by multiple systems. So we connect
-                     non-hierarchically related systems and subsystems with an 
+                     non-hierarchically related systems and subsystems with an
                      'affects' relationship
                  """ ;
     rdfs:domain :Subject ;
@@ -147,8 +147,8 @@
 :hasPart
     a owl:ObjectProperty ;
     rdfs:subPropertyOf :affects ;
-    rdfs:comment """ For Subjects which really do form a strict hierarchy. Failure of 
-                     a Subject implies failure of its parts too, though the reverse 
+    rdfs:comment """ For Subjects which really do form a strict hierarchy. Failure of
+                     a Subject implies failure of its parts too, though the reverse
                      is not necessarily true, thus 'hasPart' (the state of the whole
                      propagates to its parts) rather than 'partOf'
                  """ ;
@@ -157,15 +157,26 @@
     .
 
 
+:Link
+    a owl:Class ;
+    rdfs:subClassOf :Subject ;
+    rdfs:label "link" ;
+    rdfs:comment """ A link is used to delimit failure domains: it is not (usually)
+                     part of a specific component (though might be part of a wider
+                     system) but it affects and is affected by the things on each end
+                     (its endPoints)
+                 """ ;
+    .
+
 :endPointOf
     a owl:ObjectProperty ;
-    rdfs:comment """ endpoint of something, primarily a network link. Failure doesn't 
+    rdfs:comment """ endpoint of something, primarily a network link. Failure doesn't
                      necessarily pass an endpoint, eg a failed link might indirectly
                      impact the component that is an endPointOf it, but doesn't imply
-                     that the endPoint also failed. Likewise, an endPoint failing 
+                     that the endPoint also failed. Likewise, an endPoint failing
                      doesn't imply that the link failed.
                  """ ;
     rdfs:domain :Subject ;
-    rdfs:range :Subject ;
+    rdfs:range :Link ;
     .
 

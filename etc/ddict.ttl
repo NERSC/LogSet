@@ -12,6 +12,26 @@
 @prefix logset: <logset#> .
 @prefix : <ddict#> .
 
+# is it an ontology, or an Asset whose type is an ontology or dictionary?
+# An asset type should be a skos:Concept (via dct:type) .. how does that map
+# to this?
+# and a ttl file for logset might also be a dcat:Catalog, which catalogs logsets
+# So I think the tool just needs to look for the properties of the empty prefix and 
+# qname, raise an exception if it can't find any (hint to the user to put it on 
+# command line), and create the appropriate thing in the default context.
+#
+# then `logs info` can return info about the assets/catalogs/dictionaries in the 
+# locally-persisted graph .. and perhaps the seealsos that are references but not 
+# included
+# (including their adms: or dcat: distributions, ie where it was parsed from)
+
+:
+    a owl:Ontology ;
+    dct:title "the base data dictionary for the LogSet vocabulary" ;
+    rdfs:label "ddict" ;
+    owl:imports logset:
+    owl:versionIRI <v0.2> ;
+    .
 
 # some tags and corresponding python regex patterns to help in logseries identification:
 # tags must be mostly-alphanumeric, with a colon allowed/used to separate a label for
@@ -54,8 +74,16 @@
     logset:inUri "<label>" ;
     .
 
-# same sample SubjectTypes and their relationships, to help in identifying the subject
+# same sample Subject types and their relationships, to help in identifying the subject
 # of a given ConcreteLog:
+:NetworkLink
+    a owl:Class ;
+    rdfs:subClassOf logset:Link ;
+    rdfs:label "network link" ;
+    skos:altLabel "link" ;
+    rdfs:comment "a link between 2 ports, usually (but not necessarily) a cable" ;
+    .
+
 :Facility
     a owl:Class ;
     rdfs:subClassOf logset:Subject ;
@@ -142,14 +170,6 @@
     rdfs:comment """ the interface between a network link and a component, eg a 
                      switch typically has many ports, a nic typically has one or two
                  """ ;
-    .
-
-:NetworkLink
-    a owl:Class ;
-    rdfs:subClassOf logset:Subject ;
-    rdfs:label "network link" ;
-    skos:altLabel "link" ;
-    rdfs:comment "a link between 2 ports, usually (but not necessarily) a cable" ;
     .
 
 :ComputeNode
