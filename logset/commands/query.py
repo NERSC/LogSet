@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """ run a sparql query against the metadata graph """
 
-import logging
-logger = logging.getLogger(__name__)
+import logging as logger
+#logger = logging.getLogger(__name__)
 
 def setup_args(subparsers):
     myparser = subparsers.add_parser('query', help=__doc__)

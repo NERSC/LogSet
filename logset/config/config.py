@@ -4,6 +4,12 @@ import sys
 if sys.version_info < (3,6):
     raise Exception("Requires python 3.6+")
 
+# I hate python's logging module:
+import logging
+#logging.basicConfig()
+#logging.getLogger('').addHandler(logging.StreamHandler())
+#logger = logging.getLogger(__name__)
+
 import typing as t
 
 import os
@@ -25,9 +31,6 @@ for _path in (os.path.join(etc, "defaults.toml"),
    if os.path.exists(_path):
         with open(_path) as f:
             deepmerge.always_merger.merge(settings, toml.load(f)) 
-
-import logging
-logger = logging.getLogger(__name__)
 
 import bidict
 _verbosity_levels = bidict.bidict({
@@ -53,7 +56,7 @@ def setup_global_args(parser):
 import typing as t
 
 def update_settings(params: t.Dict[str,str]):
-    logger.debug(f"updating settings with: {params}")
+    logging.debug(f"updating settings with: {params}")
     global settings
 
     if params['nolocal']:
@@ -67,5 +70,7 @@ def update_settings(params: t.Dict[str,str]):
 
 def apply_global_config():
     logging.getLogger().setLevel(_verbosity_levels[settings['verbosity']])
+    #logging.basicConfig(level=_verbosity_levels[settings['verbosity']], format='%(message)s')
+    #print("trying to apply logging level")
 
 apply_global_config()

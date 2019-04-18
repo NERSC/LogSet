@@ -11,8 +11,8 @@ import sys
 if sys.version_info < (3,6):
     raise Exception("Requires python 3.6+")
 
-import logging
-logger = logging.getLogger(__name__)
+import logging as logger 
+#logger = logging.getLogger(__name__)
 
 import typing as t
 
@@ -38,7 +38,10 @@ class LocalNM(ns.NamespaceManager):
         I think prefixes should be local to an application, not a store)
     """
 
-    def __init__(self, graph):
+    def __init__(self, graph=None):
+        """ base NameSpaceManager needs graph argument, but uses it only to do the thing
+            this class exists to prevent, so we set a default of None
+        """
         self._namespaces: bidict.BidirectionalMapping[str,rdflib.URIRef] = bidict.bidict()
         super().__init__(graph)
 
@@ -67,6 +70,11 @@ class LocalNM(ns.NamespaceManager):
         # for compute_qname to use
         return self._namespaces.get(prefix, default)
 
+    def term(self, qname) -> rdflib.URIRef:
+        """ reverse of qname (why isn't there a utility for this already?) """
+        prefix, sep, name = qname.partition(':')
+        return ns.Namespace(self._namespaces[prefix]).term(name)
+
     def bind_from(self, graph):
         if not graph.store:
             return
@@ -85,11 +93,13 @@ class LocalNM(ns.NamespaceManager):
 
         if bound_namespace is None and bound_prefix is None:
             # easy case: neither prefix nor namespace is set yet
+            logger.info(f"binding {prefix} to {namespace}")
             self._namespaces[prefix] = namespace
             return
 
         if bound_namespace==namespace and bound_prefix==prefix:
             # another easy case: nothing to do:
+            logger.info(f"not binding {prefix} to {namespace} - already bound")
             return
 
         if not replace and bound_namespace is not None:
@@ -99,7 +109,7 @@ class LocalNM(ns.NamespaceManager):
             raise PrefixInUse(f"{prefix} is already bound to {bound_namespace}")
 
         if not override:
-            if bound_prefix is not None and bound_prefix.startwith("_"):
+            if bound_prefix is not None and bound_prefix.startswith("_"):
                 # in the base class, if the prefix startswith("_") then override is 
                 # deemed true, with a comment about generated prefixes. I haven't found
                 # any notes about generated prefixes elsewhere, and grepping for "_" is
@@ -108,6 +118,7 @@ class LocalNM(ns.NamespaceManager):
                 raise Exception("Why is this here?")
             if bound_prefix:
                 raise NamespaceAlreadyBound(f"{namespace} is already bound to {bound_prefix}")
+        logger.info(f"changing binding of {prefix} from {self._namespaces[prefix]} to {namespace}")
         self._namespaces[prefix] = namespace
 
 
