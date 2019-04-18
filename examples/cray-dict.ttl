@@ -3,6 +3,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 @prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
@@ -10,14 +11,15 @@
 
 # declare myself and set a prefix:
 #@base <https://raw.githubusercontent.com/NERSC/LogSet/master/examples> .
+@base <file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/examples/> .
 @prefix : <cray-dict#> .
 
 :
     a owl:Ontology ;
     dct:title "A data dictionary for Cray XC clusters and logs" ;
     rdfs:label "craydict" ;
-    owl:imports logset:
-    owl:imports ddict:
+    owl:imports logset: ;
+    owl:imports ddict: ;
     owl:versionIRI <v0.2> ;
     .
 
