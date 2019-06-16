@@ -30,21 +30,28 @@ of rtr --interconnect
 
 =cut
 
+# WARNING: In process of editing for gemini. 
+# Issues:
+# * gemini service dont have same number of nodes as compute. (Do we need to know about service and compute in aries?)
+# * will need to infer the processor facing tiles (l23, l24, l33, l34, l43, l44, l53, l54). Can't recall ptile <-> NIC
+# * torus links are directional, whereas XC links are not. We drop direction here.
+
 use strict;
 use Getopt::Long;
 
 my $fh;
 my $nnic_aries = 4;
+my $nnodeperslot_aries = 4;
 # from the slots, can infer all, cabs, chassis, nodes, aries. Slot->aries is known
 # use hash, so duplicates are automatically handled, even though this means we have increased storage
 my %HoHcabinet; #for each cab, hash of chassis
 my %HoHchassis; # for each chassis, hash of slots
-my %HoHslot; # infer the nodes and the aries
-# TODO: rename so can handle gemini.
-my %HoHaries; # for each aries, the rc will have tiles and NICs.
+my %HoHslot; # for each slot, infer the nodes and the rtrs
+my %HoHaries; # for each aries, tiles and NICs (value is type)
 my %HoHlink; # for each link --  e1, e2, type. name of the link will be name of the tile. includes ptile links
 my %HoHPcieLink; # between node and NIC
-my %HoHendpoint; #for each link endpoint, which it its link? nodes, nice, and tiles all go in here
+my %HoHendpoint; #for each link endpoint, which it its link? nodes, NICs, and tiles all go in here
+#NICs are endpoints of links (from tile) and pcielinks (to node)
 
 #c0-0c0s0a0l00(0:0:0) green -> c0-0c0s6a0l10(0:0:6)
 #c0-0c0s0a0l01(0:0:0) blue -> unused
@@ -57,7 +64,7 @@ GetOptions("arch=s" => \$arch,
            "rtrfile=s" => \$rtrfile)
 or die "Error in command line arguments\n";
 
-if (!($arch=~/XC/)){
+if (!($arch eq "XC")){ # && !($arch eq "XE")){
     die "Only XC supported\n";
 }
 
@@ -76,10 +83,11 @@ sub addEndpoint{
     $HoHendpoint{$E0}{'type'} = $type;
     $HoHendpoint{$E0}{'link'} = $lname0;
     $HoHendpoint{$E0}{'pcielink'} = $pcie;
+    #only the NIC is an endpoint of both a link and a pcielink
 }
 
 sub printEndpoint{
-    foreach (sort { $b <=> $a } keys(%HoHendpoint) ){
+    foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHendpoint) ){
 	my $ep = $_;
 
 	if ($HoHendpoint{$ep}{'type'} =~ /TLE/){
@@ -90,6 +98,7 @@ sub printEndpoint{
 	    print ":$ep a ddict:computeNode";
 	}
 
+	# only NIC is endpoint of both
 	if (!($HoHendpoint{$ep}{'link'} =~ /N\/A/)){
 	    print "\n\tlogset:endPointOf :" . $HoHendpoint{$ep}{'link'} . ";";
 	}
@@ -102,9 +111,13 @@ sub printEndpoint{
 
 }
 
-sub addAriesTile{
-    my ($R0,$E0) = @_;
-    $HoHaries{$R0}{$E0} = "TLE"; #child of the aries
+sub addTile{
+    my ($R0,$E0,$arch) = @_;
+    if ($arch =~ /XC/){
+	$HoHaries{$R0}{$E0} = "TLE"; #child of the aries
+#    } else {
+#	$HoHgemini{$R0}{$E0} = "TLE"; #child of the gemini DNE yet.....
+    }
 }
 
 sub addAriesNIC{
@@ -126,12 +139,9 @@ sub addAriesNIC{
 }
 
 sub printCabinet{
-    foreach (sort { $b <=> $a } keys(%HoHcabinet) ){
-	my $cab = $_;
-    
+    foreach my $cab (sort { $a <=> $b || $a cmp $b } keys(%HoHcabinet) ){
 	print ":$cab a ddict:cabinet\n";
-	foreach (sort { $b <=> $a } keys %{ $HoHcabinet{$cab} } ){
-	    my $chassis = $_;
+	foreach my $chassis (sort { $a <=> $b || $a cmp $b } keys %{ $HoHcabinet{$cab} } ){
 	    print "\tlogset:hasPart :$chassis;\n";
 	}
 	print "\t.\n";
@@ -141,11 +151,11 @@ sub printCabinet{
 
 
 sub printChassis{
-    foreach (sort { $b <=> $a } keys(%HoHchassis) ){
+    foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHchassis) ){
 	my $chassis = $_;
     
 	print ":$chassis a ddict:chassis\n";
-	foreach (sort { $b <=> $a } keys %{ $HoHchassis{$chassis} } ){
+	foreach (sort { $a <=> $b || $a cmp $b } keys %{ $HoHchassis{$chassis} } ){
 	    my $slot = $_;
 	    print "\tlogset:hasPart :$slot;\n";
 	}
@@ -154,17 +164,22 @@ sub printChassis{
     }
 }
 
-sub printSlot{
-    foreach (sort { $b <=> $a } keys(%HoHslot) ){
+sub printAriesSlot{
+
+    my $nnodes = 0;
+    my $rtrtype  = '';
+    my $nnodes = $nnodeperslot_aries;
+
+    foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHslot) ){
 	my $slot = $_;
 	print ":$slot a ddict:blade\n";
 
 	#well known slots have nodes
-	for (my $i = 0; $i < 4; $i++){
+	for (my $i = 0; $i < $nnodes; $i++){
 	    print "\tlogset:hasPart :$slot" . "n$i;\n";
 	}
 
-	#well known slots have aries
+	#well known slots have routers
 	print "\tlogset:hasPart :$slot" . "a0;\n";
 	print "\t.\n";
 	print "\n";
@@ -175,10 +190,10 @@ sub printSlot{
 sub printAries{
     #aries will have both tile and NIC children. they will be added as endpoints
 
-    foreach (sort { $b <=> $a } keys(%HoHaries) ){
+    foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHaries) ){
 	my $aries = $_;
 	print ":$aries a cray-dict:ariesRouter\n";
-	foreach (sort { $b <=> $a } keys %{ $HoHaries{$aries} } ){
+	foreach (sort { $a <=> $b || $a cmp $b } keys %{ $HoHaries{$aries} } ){
 	    my $child = $_; # children are both TILES and NICS. Here we do not care which type
 	    print "\tlogset:hasPart :$child;\n";
 	}
@@ -188,7 +203,7 @@ sub printAries{
 }
 
 sub printPcieLink{
-    foreach (sort { $b <=> $a } keys(%HoHPcieLink) ){
+    foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHPcieLink) ){
 	my $link = $_;
 	print ":$link a ddict:pcieLink .\n";
     }
@@ -197,7 +212,7 @@ sub printPcieLink{
     
 
 sub printLink{
-    foreach (sort { $b <=> $a } keys(%HoHlink) ){
+    foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHlink) ){
 	my $link = $_;
 
 	if ($HoHlink{$link}{'type'} =~ /BLU/){
@@ -208,6 +223,18 @@ sub printLink{
 	    print ":$link a cray-dict:blackLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /PTL/){
 	    print ":$link a cray-dict:ptileLink .\n";
+	} elsif ($HoHlink{$link}{'type'} =~ /Xp/){
+	    print ":$link a cray-dict:XpLink .\n";
+	} elsif ($HoHlink{$link}{'type'} =~ /Xm/){
+	    print ":$link a cray-dict:XmLink .\n";
+	} elsif ($HoHlink{$link}{'type'} =~ /Yp/){
+	    print ":$link a cray-dict:YpLink .\n";
+	} elsif ($HoHlink{$link}{'type'} =~ /Ym/){
+	    print ":$link a cray-dict:YmLink .\n";
+	} elsif ($HoHlink{$link}{'type'} =~ /Zp/){
+	    print ":$link a cray-dict:ZpLink .\n";
+	} elsif ($HoHlink{$link}{'type'} =~ /Zm/){
+	    print ":$link a cray-dict:ZmLink .\n";
 	}
     }
     print "\n";
@@ -224,9 +251,11 @@ while(<$fh>){
 
     if ($line =~ /\_>/){
 	my @vals = split(/\s+/,$line);
-	if (scalar(@vals) != 4){
-	    die "Bad line: <$line>\n";
+	if (($arch eq "XC" && (scalar(@vals) != 4)) ||
+	    ($arch eq "XE" && (scalar(@vals) != 6))){
+	    die "Bad line <$line>\n";
 	}
+
 	my $E0 = -1;
 	my $E1 = -1;
 	my $R0 = -1;
@@ -240,10 +269,29 @@ while(<$fh>){
 	    $type = "BLK";
 	} elsif ($vals[1] eq 'green'){
 	    $type = "GRE";
-	} elsif ($vals[1] eq 'ptile'){
+	} elsif ($vals[1] eq 'ptile'){ # ptile only in the aries rtr output
 	    $type = "PTL";
 	} elsif ($vals[1] eq 'host'){ # DNE
 	    $type = "HST";
+#NOTE: for gemini direction matters...so either have to double add if tracking directions, or drop +/- if not
+        } elsif ($vals[1] eq 'X+'){
+#	    $type = "Xp";
+	    $type = "X";
+        } elsif ($vals[1] eq 'X_'){
+#	    $type = "Xm";
+	    $type = "X";
+        } elsif ($vals[1] eq 'Y+'){
+#	    $type = "Yp";
+	    $type = "Y";
+        } elsif ($vals[1] eq 'Y_'){
+#	    $type = "Ym";
+	    $type = "Y";
+        } elsif ($vals[1] eq 'Z+'){
+#	    $type = "Zp";
+	    $type = "Z";
+        } elsif ($vals[1] eq 'Z_'){
+#	    $type = "Zm";
+	    $type = "Z";
 	} else {
 	    $type = "UNK";
 	}
@@ -253,7 +301,7 @@ while(<$fh>){
 	    $E0 = $1;
 	    if ($E0 =~ /(.*)l/){
 		$R0 = $1;
-		addAriesTile($R0,$E0);
+		addTile($R0,$E0,$arch);
 	    }
 	}
 
@@ -262,7 +310,7 @@ while(<$fh>){
 	    $E1 = $1;
 	    if ($E1 =~ /(.*)l/){
 		$R1 = $1;
-		#dont add the aries for this side; will pick it up on the other side of the link
+		#dont add the router for this side; will pick it up on the other side of the link
 	    }
 
 	    # these will readin as double, one for each endpoint, so check to see if we already have this one
@@ -270,41 +318,45 @@ while(<$fh>){
 	    my $lname1 = "link" . $E1;
 	    if (!(exists $HoHlink{$lname0}) && !(exists $HoHlink{$lname1})){
 		#add this link, otherwise we already have it from the other end
+		#NOTE: for gemini direction matters...so either have to double add if tracking directions, or drop +/- if not
 		addEndpoint($E0,"TLE",$lname0,"N/A");
 		addEndpoint($E1,"TLE",$lname0,"N/A");
 		addLink($R0,$E0,$R1,$E1,$lname0,$type);
 	    }
-	} elsif ($vals[3] =~ /unused/){
+	} elsif ($vals[3] =~ /unused/){ # only happens for Aries
 	    #$E1 = "unused"; does not matter
 	    #$R1 = "unused"; does not matter
 	    #add the tile, but not the link
-	    addAriesTile($R0,$E0);
+	    addTile($R0,$E0,$arch);
 	    addEndpoint($E0,"TLE","N/A","N/A");
 	} elsif ($vals[3] =~ /processor/){
-	    # TODO: Gemini
-	    # This endpoint is a NIC. aries has 4 NIC and 8 ptiles, in order. get the last digit
-	    my $node = -1;
-	    if ($E0 =~ /.*(\d)/){
-		my $lname0 = "link" . $E0;
-		$R1 = $R0;
-		my $lastdigit = $1;
-		if ($lastdigit < 2){
-		    $node = 0;
-		} elsif ($lastdigit < 4){
-		    $node = 1;
-		} elsif ($lastdigit < 6){
-		    $node = 2;
-		} elsif ($lastdigit < 8){
-		    $node = 3;
-		} else {
-		    die "Cannot determine NIC for $E0\n";
+	    if ($arch  eq "XC"){
+		# This endpoint is a NIC. aries has 4 NIC and 8 ptiles, in order. get the last digit
+		my $node = -1;
+		if ($E0 =~ /.*(\d)/){
+		    my $lname0 = "link" . $E0;
+		    $R1 = $R0;
+		    my $lastdigit = $1;
+		    if ($lastdigit < 2){
+			$node = 0;
+		    } elsif ($lastdigit < 4){
+			$node = 1;
+		    } elsif ($lastdigit < 6){
+			$node = 2;
+		    } elsif ($lastdigit < 8){
+			$node = 3;
+		    } else {
+			die "Cannot determine NIC for $E0\n";
+		    }
+		    
+		    $E1 = $R0 . "n". $node;
+		    addTile($R0,$E0,$arch);
+		    addEndpoint($E0,"TLE",$lname0,"N/A");
+		    addLink($R0,$E0,$R1,$E1,$lname0,$type); #add the ptile link
+		    addAriesNIC($R1,$E1,$node,$lname0); #add the NIC, NODE, and pcie link
 		}
-
-		$E1 = $R0 . "n". $node;
-		addAriesTile($R0,$E0);
-		addEndpoint($E0,"TLE",$lname0,"N/A");
-		addLink($R0,$E0,$R1,$E1,$lname0,$type); #add the ptile link
-		addAriesNIC($R1,$E1,$node,$lname0); #add the NIC, NODE, and pcie link
+	    } else {  # for gemini, the NIC facing tiles must be inferred
+		die "Can't handle processor tiles for Gemini";
 	    }
 	}
 
@@ -326,12 +378,17 @@ while(<$fh>){
 } # while
 close($fh);
 
+if ($arch eq "XE"){
+# put ptiles in here
+}
+
 printCabinet();
 printChassis();
-printSlot();
+printAriesSlot();
 printAries();
 printLink();
 printEndpoint();
 printPcieLink();
+
 
 
