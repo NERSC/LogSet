@@ -8,7 +8,7 @@ archFromInterconnect.pl
 
 =head1 SYNOPSIS
 
-cat rtrfile.txt | ./archFromInterconnect.pl > arch.out
+./archFromInterconnect.pl --rtrfile=rtr.out --arch=XC > arch.out
 
 
 =head1 DESCRIPTION
@@ -30,9 +30,10 @@ of rtr --interconnect
 
 =cut
 
-
 use strict;
+use Getopt::Long;
 
+my $fh;
 my $nnic_aries = 4;
 # from the slots, can infer all, cabs, chassis, nodes, aries. Slot->aries is known
 # use hash, so duplicates are automatically handled, even though this means we have increased storage
@@ -49,6 +50,16 @@ my %HoHendpoint; #for each link endpoint, which it its link? nodes, nice, and ti
 #c0-0c0s0a0l01(0:0:0) blue -> unused
 #c0-0c0s0a0l50(0:0:0) ptile -> processor
 
+my $arch='';
+my $rtrfile='';
+
+GetOptions("arch=s" => \$arch,
+           "rtrfile=s" => \$rtrfile)
+or die "Error in command line arguments\n";
+
+if (!($arch=~/XC/)){
+    die "Only XC supported\n";
+}
 
 sub addLink{
     my ($R0,$E0,$R1,$E1,$lname0,$type) = @_;
@@ -202,7 +213,11 @@ sub printLink{
     print "\n";
 }
 
-while(<>){
+
+open(my $fh, "<", $rtrfile)
+    or die "Can't open rtrfile: $!";
+
+while(<$fh>){
     chomp;
     my $line = $_;
     $line =~ tr/-/_/; # WARNING: will need to do underscore in all the matching...
@@ -309,6 +324,7 @@ while(<>){
 	}
     }
 } # while
+close($fh);
 
 printCabinet();
 printChassis();
