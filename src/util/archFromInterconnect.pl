@@ -79,11 +79,21 @@ sub addLink{
 }
 
 sub addEndpoint{
-    my ($E0,$type,$lname0,$pcie) = @_;
-    $HoHendpoint{$E0}{'type'} = $type;
-    $HoHendpoint{$E0}{'link'} = $lname0;
-    $HoHendpoint{$E0}{'pcielink'} = $pcie;
-    #only the NIC is an endpoint of both a link and a pcielink
+    my ($E0,$type,$lname0) = @_;
+    $HoHendpoint{$E0}{'type'} = $type; # ok if this is a repeat
+
+    if ($lname0 eq "N/A"){
+	return; # unused
+    }
+
+    my @arr;
+    if (exists $HoHendpoint{$E0}{'links'} ){
+	@arr =  @{$HoHendpoint{$E0}{'links'}};
+	push @arr, $lname0;
+    } else {
+	$arr[0] = $lname0;
+    }
+    @{$HoHendpoint{$E0}{'links'}} = @arr;
 }
 
 sub printEndpoint{
@@ -98,12 +108,12 @@ sub printEndpoint{
 	    print ":$ep a ddict:computeNode";
 	}
 
-	# only NIC is endpoint of both
-	if (!($HoHendpoint{$ep}{'link'} =~ /N\/A/)){
-	    print "\n\tlogset:endPointOf :" . $HoHendpoint{$ep}{'link'} . ";";
-	}
-	if (!($HoHendpoint{$ep}{'pcielink'} =~ /N\/A/)){
-	    print "\n\tlogset:endPointOf :" . $HoHendpoint{$ep}{'pcielink'} . ";";
+	if (exists $HoHendpoint{$ep}{'links'}){
+	    foreach my $val ( @{$HoHendpoint{$ep}{'links'}} ){
+		print "\n\tlogset:endPointOf :" . $val . ";";
+	    }
+	} else {
+#	    print "no endpoints for <$ep>\n";
 	}
 	print "\t.\n";
     }    
@@ -120,23 +130,31 @@ sub addTile{
     }
 }
 
-sub addAriesNIC{
-    my ($R0,$NIC,$nodenum,$lname0) = @_;
-    #adding the NIC, adds the node, and the pcielink
 
-    $HoHaries{$R0}{$NIC} = "NIC"; #child of the aries
-    #add the node
-    if ($R0 =~ /(.*)a0/){
-	my $base = $1;
-	my $node = $base . "n". $nodenum;
-	my $pcie = "pcie" . $node;
-	#node is an enpoint
-	$HoHPcieLink{$pcie} = 1;
-	my @endarr = ();
-	addEndpoint($node,"NDE","N/A",$pcie); #endpoint of the pcie
-	addEndpoint($NIC,"NIC",$lname0,$pcie); #endpoint of the pcie and the ptile link
+sub addNICandNode{
+    my ($R0,$NIC,$nodenum,$lname0) = @_;
+
+    if (!(exists $HoHaries{$R0}{$NIC})){ 
+	$HoHaries{$R0}{$NIC} = "NIC"; #child of the aries. 
+	#add the node
+	if ($R0 =~ /(.*)a0/){
+	    my $base = $1;
+	    my $node = $base . "n". $nodenum;
+	    my $pcie = "pcie" . $node;
+	    #node is an enpoint
+	    $HoHPcieLink{$pcie} = 1;
+	    my @endarr = ();
+	    
+#	    print "adding endpint <$NIC> to link $pcie\n";
+	    addEndpoint($NIC,"NIC",$pcie); #endpoint of the pcie. this will be unique to the NIC
+#	    print "adding endpint <$node> to link $pcie\n";
+	    addEndpoint($node,"NDE",$pcie); #endpoint of the pcie. this will be unique to the node
+	}
     }
+#    print "adding endpint <$NIC> to link $lname0\n";
+    addEndpoint($NIC,"NIC",$lname0);     # add this ptile endpoint to the NIC, will be multiples
 }
+
 
 sub printCabinet{
     foreach my $cab (sort { $a <=> $b || $a cmp $b } keys(%HoHcabinet) ){
@@ -319,8 +337,8 @@ while(<$fh>){
 	    if (!(exists $HoHlink{$lname0}) && !(exists $HoHlink{$lname1})){
 		#add this link, otherwise we already have it from the other end
 		#NOTE: for gemini direction matters...so either have to double add if tracking directions, or drop +/- if not
-		addEndpoint($E0,"TLE",$lname0,"N/A");
-		addEndpoint($E1,"TLE",$lname0,"N/A");
+		addEndpoint($E0,"TLE",$lname0);
+		addEndpoint($E1,"TLE",$lname0);
 		addLink($R0,$E0,$R1,$E1,$lname0,$type);
 	    }
 	} elsif ($vals[3] =~ /unused/){ # only happens for Aries
@@ -328,10 +346,11 @@ while(<$fh>){
 	    #$R1 = "unused"; does not matter
 	    #add the tile, but not the link
 	    addTile($R0,$E0,$arch);
-	    addEndpoint($E0,"TLE","N/A","N/A");
+	    addEndpoint($E0,"TLE","N/A");
 	} elsif ($vals[3] =~ /processor/){
 	    if ($arch  eq "XC"){
 		# This endpoint is a NIC. aries has 4 NIC and 8 ptiles, in order. get the last digit
+		# NIC will be endpoint of 2 ptilelinks and 1 pcie link.
 		my $node = -1;
 		if ($E0 =~ /.*(\d)/){
 		    my $lname0 = "link" . $E0;
@@ -350,10 +369,12 @@ while(<$fh>){
 		    }
 		    
 		    $E1 = $R0 . "n". $node;
+#		    print "adding ptile <$E0>\n";
 		    addTile($R0,$E0,$arch);
-		    addEndpoint($E0,"TLE",$lname0,"N/A");
-		    addLink($R0,$E0,$R1,$E1,$lname0,$type); #add the ptile link
-		    addAriesNIC($R1,$E1,$node,$lname0); #add the NIC, NODE, and pcie link
+#		    print "adding endpint <$E0> to link $lname0\n";
+		    addEndpoint($E0,"TLE",$lname0); # add tile as endpoint
+		    addLink($R0,$E0,$R1,$E1,$lname0,$type); #add the ptile link. 
+		    addNICandNode($R1,$E1,$node,$lname0); # if DNE
 		}
 	    } else {  # for gemini, the NIC facing tiles must be inferred
 		die "Can't handle processor tiles for Gemini";
