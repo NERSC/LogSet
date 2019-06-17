@@ -93,13 +93,13 @@ class LocalNM(ns.NamespaceManager):
 
         if bound_namespace is None and bound_prefix is None:
             # easy case: neither prefix nor namespace is set yet
-            logger.info(f"binding {prefix} to {namespace}")
+            logger.debug(f"binding {prefix} to {namespace}")
             self._namespaces[prefix] = namespace
             return
 
         if bound_namespace==namespace and bound_prefix==prefix:
             # another easy case: nothing to do:
-            logger.info(f"not binding {prefix} to {namespace} - already bound")
+            logger.debug(f"not binding {prefix} to {namespace} - already bound")
             return
 
         if not replace and bound_namespace is not None:
@@ -118,7 +118,7 @@ class LocalNM(ns.NamespaceManager):
                 raise Exception("Why is this here?")
             if bound_prefix:
                 raise NamespaceAlreadyBound(f"{namespace} is already bound to {bound_prefix}")
-        logger.info(f"changing binding of {prefix} from {self._namespaces[prefix]} to {namespace}")
+        logger.debug(f"changing binding of {prefix} from {self._namespaces[prefix]} to {namespace}")
         self._namespaces[prefix] = namespace
 
 

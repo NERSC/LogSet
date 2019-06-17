@@ -119,6 +119,7 @@ sub printCabinet{
 	my $cab = $_;
     
 	print ":$cab a ddict:Cabinet ;\n";
+    print "\trdfs:label \"$cab\" ;\n" ;
 	foreach (sort { $b <=> $a } keys %{ $HoHcabinet{$cab} } ){
 	    my $chassis = $_;
 	    print "\tlogset:hasPart :$chassis ;\n";
@@ -134,6 +135,7 @@ sub printChassis{
 	my $chassis = $_;
     
 	print ":$chassis a ddict:Chassis ;\n";
+    print "\trdfs:label \"$chassis\" ;\n" ;
 	foreach (sort { $b <=> $a } keys %{ $HoHchassis{$chassis} } ){
 	    my $slot = $_;
 	    print "\tlogset:hasPart :$slot;\n";
@@ -147,6 +149,7 @@ sub printSlot{
     foreach (sort { $b <=> $a } keys(%HoHslot) ){
 	my $slot = $_;
 	print ":$slot a ddict:Blade ;\n";
+    print "\trdfs:label \"$slot\" ;\n" ;
 
 	#well known slots have nodes
 	for (my $i = 0; $i < 4; $i++){
@@ -167,6 +170,7 @@ sub printAries{
     foreach (sort { $b <=> $a } keys(%HoHaries) ){
 	my $aries = $_;
 	print ":$aries a craydict:AriesRouter ;\n";
+    print "\trdfs:label \"$aries\" ;\n" ;
 	foreach (sort { $b <=> $a } keys %{ $HoHaries{$aries} } ){
 	    my $child = $_; # children are both TILES and NICS. Here we do not care which type
 	    print "\tlogset:hasPart :$child ;\n";
@@ -199,6 +203,29 @@ sub printLink{
 	    print ":$link a craydict:Ptile .\n";
 	}
     }
+    print "\n";
+}
+
+sub printPrefixes{
+    print "\@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
+    print "\@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n";
+    print "\@prefix adms: <http://www.w3.org/ns/adms#> .\n";
+    print "\@prefix dct: <http://purl.org/dc/terms/> .\n";
+    print "\@prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .\n";
+    print "\@prefix ddict: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/ddict#> .\n";
+    print "\@base <file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/examples/> .\n";
+    print "\@prefix craydict: <cray-dict#> .\n";
+    print "\n";
+    print "# declare myself and set a prefix:\n";
+    #print "\@base <http://FIXME/where/will/this/be/published> .\n";
+    print "\@base <file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/examples/> .\n";
+    print "\@prefix : <edison-arch#> .\n";
+    print "\n";
+    print ":\n";
+    print "\ta adms:Asset ;\n";
+    print "\tdct:title \"FIXME give this file a title\" ;\n";
+    print "\trdfs:label \"FIXME short label\" ;\n";
+    print "\t.\n";
     print "\n";
 }
 
@@ -310,6 +337,7 @@ while(<>){
     }
 } # while
 
+printPrefixes();
 printCabinet();
 printChassis();
 printSlot();

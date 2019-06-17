@@ -76,6 +76,10 @@
 
 # same sample Subject types and their relationships, to help in identifying the subject
 # of a given ConcreteLog:
+
+# there may be benefit in inserting another level of class hierarchy to classify
+# subjects as eg Component or Service or Activity
+
 :NetworkLink
     a owl:Class ;
     rdfs:subClassOf logset:Link ;
@@ -278,15 +282,32 @@
 
 :BatchSystem
     a owl:Class ;
-    rdfs:subClassOf logset:Subject;
+    rdfs:subClassOf logset:Subject ;
     rdfs:label "batch system" ;
     rdfs:comment "a service for managing cluster workload in the form of batch jobs" ;
     .
 
 :Scheduler
     a owl:Class ;
-    rdfs:subClassOf logset:Subject;
+    rdfs:subClassOf logset:Subject ;
     rdfs:label "scheduler" ;
     rdfs:comment "a service for managing the when and where batch jobs are run" ;
+    .
+
+# a Job should be a subclass of subject too
+# is there a general/natural taxonomy for non-physical things like this, eg an OS
+# update might affect things, or an installed software (which has version etc)
+:Activity
+    a owl:Class ;
+    rdfs:subClassOf logset:Subject ;
+    rdfs:label "activity" ;
+    rdfs:comment "some process or activity or event that used or impacted a system" ;
+    .
+
+:Job
+    a owl:Class ;
+    rdfs:subClassOf :Activity ;
+    rdfs:label "job" ;
+    rdfs:comment "a batch job using the system" ;
     .
 
