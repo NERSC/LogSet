@@ -88,6 +88,13 @@
     rdfs:comment "a link between 2 ports, usually (but not necessarily) a cable" ;
     .
 
+:PCIeLink
+    a owl:Class ;
+    rdfs:subClassOf logset:Link ;
+    rdfs:label "pcieLink" ;
+    rdfs:comment "interface between a node and a nic " ;
+    .
+
 :Facility
     a owl:Class ;
     rdfs:subClassOf logset:Subject ;

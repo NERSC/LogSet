@@ -69,10 +69,10 @@
     .
 
 # maybe this should be something else
-:Ptile
+:PtileLink
     a owl:Class ;
     rdfs:subClassOf ddict:NetworkLink ;
-    rdfs:subClassOf ddict:Port ;
+#    rdfs:subClassOf ddict:Port ;
     rdfs:label "aries ptile" ;
     rdfs:comment """ aries tile providing link between the aries router and the
                      node NIC. Ptile is special is that it acts both as a network
