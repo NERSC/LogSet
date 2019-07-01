@@ -39,12 +39,29 @@
     rdfs:comment "The high-radix tile-based router used by Cray Aries" ;
     .
 
+# This will be unused
 :AriesRouterTile
     a owl:Class ;
     rdfs:subClassOf ddict:Port ;
     rdfs:label "aries router tile" ;
     skos:altLabel "tile" ;
     rdfs:comment "a single tile in an Aries router" ;
+    .
+
+:NetworkTile
+    a owl:Class ;
+    rdfs:subClassOf ddict:Port ;
+    rdfs:label "aries router network facing tile" ;
+    skos:altLabel "network tile" ;
+    rdfs:comment "a single network facing tile in an Aries router" ;
+    .
+
+:PTile
+    a owl:Class ;
+    rdfs:subClassOf ddict:Port ;
+    rdfs:label "aries router processor facing tile" ;
+    skos:altLabel "ptile" ;
+    rdfs:comment "a single processor facing tile in an Aries router" ;
     .
 
 :BlueLink
