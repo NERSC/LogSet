@@ -38,11 +38,17 @@ class LocalNM(ns.NamespaceManager):
         I think prefixes should be local to an application, not a store)
     """
 
+    # hmm, bidict is handy but has a limitation: what if different graphs in the 
+    # same conjunctivegraph use different prefixes to refer to the same namespace?
+    # keep a list of secondary prefixes (namespace can be repeated)
+    
+
     def __init__(self, graph=None):
         """ base NameSpaceManager needs graph argument, but uses it only to do the thing
             this class exists to prevent, so we set a default of None
         """
-        self._namespaces: bidict.BidirectionalMapping[str,rdflib.URIRef] = bidict.bidict()
+        self._canonical: bidict.BidirectionalMapping[str,rdflib.URIRef] = bidict.bidict()
+        self._secondary: t.Dict[str,rdflib.URIRef] = dict()
         super().__init__(graph)
 
     @property
@@ -60,20 +66,24 @@ class LocalNM(ns.NamespaceManager):
         return self
 
     def namespaces(self) -> t.Generator[t.Tuple[str, rdflib.URIRef],None,None]:
-        return ((prefix,namespace) for prefix,namespace in self._namespaces.items())
+        return ((prefix,namespace) for prefix,namespace in self._canonical.items())
 
     def prefix(self, namespace: rdflib.URIRef, default=None) -> str:
         # for normalizeUri and compute_qname to use
-        return self._namespaces.inverse.get(namespace, default)
+        return self._canonical.inverse.get(namespace, default)
 
     def namespace(self, prefix: str, default=None) -> rdflib.URIRef:
         # for compute_qname to use
-        return self._namespaces.get(prefix, default)
+        return self._canonical.get(prefix, self._secondary.get(prefix, default))
 
     def term(self, qname) -> rdflib.URIRef:
         """ reverse of qname (why isn't there a utility for this already?) """
         prefix, sep, name = qname.partition(':')
-        return ns.Namespace(self._namespaces[prefix]).term(name)
+        if prefix in self._canonical or prefix in self._secondary:
+            return ns.Namespace(self.namespace(prefix)).term(name)
+        else:
+            raise KeyError(prefix)
+        #return ns.Namespace(self._canonical[prefix]).term(name)
 
     def bind_from(self, graph):
         if not graph.store:
@@ -84,17 +94,26 @@ class LocalNM(ns.NamespaceManager):
     def bind(self, prefix, namespace, override=True, replace=False):
         ## see and fix /global/homes/s/sleak/Software/rdflib/rdflib/namespace.py
         #raise NotImplementedError
+        # from the original source, the intention is:
+        #    bind a given namespace to the prefix
+        #    if override, rebind, even if the given namespace is already bound to another prefix.
+        #    if replace, replace any existing prefix with the new namespace
 
         prefix = prefix or '' # must be a string
         namespace = rdflib.URIRef(six.text_type(namespace))
+
+        # a blank prefix is always secondary and can be overwritten with impunity:
+        if not prefix:
+            self._secondary[prefix] = namespace
+            return
 
         bound_namespace = self.namespace(prefix)
         bound_prefix = self.prefix(namespace)
 
         if bound_namespace is None and bound_prefix is None:
             # easy case: neither prefix nor namespace is set yet
-            logger.debug(f"binding {prefix} to {namespace}")
-            self._namespaces[prefix] = namespace
+            logger.debug(f"binding {prefix} to {namespace} (1)")
+            self._canonical[prefix] = namespace
             return
 
         if bound_namespace==namespace and bound_prefix==prefix:
@@ -102,23 +121,30 @@ class LocalNM(ns.NamespaceManager):
             logger.debug(f"not binding {prefix} to {namespace} - already bound")
             return
 
-        if not replace and bound_namespace is not None:
-            # in the base class, the prefix would be modified until an unused one is
-            # found, and that would be bound to the namespace. Instead of quietly
-            # binding something different to what was requested, raise an error:
-            raise PrefixInUse(f"{prefix} is already bound to {bound_namespace}")
+        if bound_namespace is not None:
+            if not replace:
+                # in the base class, the prefix would be modified until an unused one is
+                # found, and that would be bound to the namespace. Instead of quietly
+                # binding something different to what was requested, raise an error:
+                # HOWEVER: if prefix is '', deem replace to be true
+                logger.debug(f"attempting to bind {prefix} to {namespace}")
+                raise PrefixInUse(f"{prefix} is already bound to {bound_namespace}")
+            else: 
+                logger.debug(f"binding {prefix} to {namespace} (2)")
+                self._canonical[prefix] = namespace
 
-        if not override:
-            if bound_prefix is not None and bound_prefix.startswith("_"):
-                # in the base class, if the prefix startswith("_") then override is 
-                # deemed true, with a comment about generated prefixes. I haven't found
-                # any notes about generated prefixes elsewhere, and grepping for "_" is
-                # a hopeless proposition, so I'll try to catch it in the wild and work 
-                # out where this undocumented spec came from:
-                raise Exception("Why is this here?")
-            if bound_prefix:
+        if bound_prefix is not None:
+            # this namespace is already associated with a prefix. In the base class,
+            # if the prefix startswith("_") then override is deemed true, with a
+            # comment about generated prefixes. I haven't found any notes about generated
+            # prefixes elsewhere, but generating a dummy prefix when the prefix is 
+            # blank (eg for "this ttl file") is a plausible use-case, and those generated
+            # prefixes should always be secondary to a user-specified prefix: 
+            if override or bound_prefix.startswith('_'):
+                logger.debug(f"demoting {bound_prefix} and binding {prefix} to {namespace}")
+                self._secondary[bound_prefix] = self._canonical.pop(bound_prefix)
+                self._canonical[prefix] = namespace
+            else:
                 raise NamespaceAlreadyBound(f"{namespace} is already bound to {bound_prefix}")
-        logger.debug(f"changing binding of {prefix} from {self._namespaces[prefix]} to {namespace}")
-        self._namespaces[prefix] = namespace
 
 
