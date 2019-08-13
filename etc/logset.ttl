@@ -28,9 +28,12 @@
 #@prefix ddict: <https://raw.githubusercontent.com/NERSC/LogSet/master/etc/ddict#> .
 #@prefix ddict: <file:///global/homes/s/sleak/Monitoring/Resilience/LogSet/etc/ddict#> .
 #@prefix ddict: <../etc/ddict#> .
+# .. however, using file:/// or relative paths can be risky, because eg the two 
+# urls above might actually be the same file, but they are distinct RDF namespaces,
+# so there is not a single definition for each term 
 
 # declare myself and set a prefix:
-@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/> .
+@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
 @prefix : <logset#> .
 :
     a owl:Ontology ;
