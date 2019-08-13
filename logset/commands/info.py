@@ -21,4 +21,6 @@ def run(params: t.Dict[str,str]):
 
         for i, c in enumerate(contexts):
             print(f"subgraph {i}: {len(c)} triples from {str(c.identifier)}")
-             
+
+        for ns in g.namespaces():
+            print(f"{ns[0]}: <{ns[1]}>")
