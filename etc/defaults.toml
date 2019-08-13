@@ -9,4 +9,4 @@ verbosity = "warning"
     name = "logs.db"
 
 [namespaces]
-    base = "http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets"
+    base = "https://portal.nersc.gov/project/m888/resilience/datasets"
