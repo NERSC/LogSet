@@ -121,6 +121,18 @@ class LocalNM(ns.NamespaceManager):
             logger.debug(f"not binding {prefix} to {namespace} - already bound")
             return
 
+        if bound_namespace==namespace and self._secondary.get(prefix)==namespace:
+            if bound_prefix is None:
+                # secondary binding like this exists, and namespace is not primarily
+                # bound to a different prefix, so we can promote the secondary binding:
+                logger.debug(f"promoting {prefix} -> {namespace} from secondary")
+                del self._secondary[prefix]
+                self._canonical[prefix] = namespace
+            else:
+                # can't safely promote, but secondary binding already exists:
+                logger.debug(f"not binding {prefix} to {namespace} - already (secondarily) bound")
+            return
+
         if bound_namespace is not None:
             if not replace:
                 # in the base class, the prefix would be modified until an unused one is
@@ -144,6 +156,11 @@ class LocalNM(ns.NamespaceManager):
                 logger.debug(f"demoting {bound_prefix} and binding {prefix} to {namespace}")
                 self._secondary[bound_prefix] = self._canonical.pop(bound_prefix)
                 self._canonical[prefix] = namespace
+            elif prefix not in self._secondary: 
+                # if not override, its still useful for the prefix to point to the 
+                # namespace, but don't replace an existing secondary prefix
+                logger.debug(f"secondary binding {prefix} to {namespace} to leave {bound_prefix} in place")
+                self._secondary[prefix] = namespace
             else:
                 raise NamespaceAlreadyBound(f"{namespace} is already bound to {bound_prefix}")
 

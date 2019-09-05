@@ -1,4 +1,28 @@
 
+```
+../logs.py -v use mutrino-arch.ttl
+```
+
+    17:23 sleak@cori05:H/examples$ ../logs.py query 'SELECT ?node WHERE {
+      ?slot logset:hasPart ?node .
+      ?slot logset:hasPart ?aries .
+      ?aries logset:hasPart ?tile .
+      ?tile  logset:endPointOf mutrino:linkc0_0c0s10a0l23 .
+    ?node a ?thing .
+    ?thing rdfs:subClassOf* ddict:Node .
+    }'
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c0_0c0s10n1'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c0_0c0s10n2'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c0_0c0s10n3'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c0_0c0s10n0'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c1_0c1s10n3'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c1_0c1s10n0'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c1_0c1s10n2'),)
+    (rdflib.term.URIRef('https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#c1_0c1s10n1'),)
+
+
+
+
 An example graph of a LogSet is:
 
 .. code-block:: plantuml

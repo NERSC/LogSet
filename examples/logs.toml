@@ -1,0 +1,9 @@
+# TOML
+
+title = "my example added settings for LogSet tools"
+#verbosity = "debug"
+
+[bindings]
+    cray = "https://portal.nersc.gov/project/m888/resilience/datasets/cray-dict#"
+    mutrino = "https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#"
+

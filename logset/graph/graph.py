@@ -42,47 +42,6 @@ def LogSetGraph(persistence: str='', # type of local persistence (store) to use
 import rdflib
 import urllib.error
 
-# namespace management: prefixes we prefer to associate with key namespaces:
-base: str = config.settings["namespaces"]["base"]
-# FIXME this should probably be in config too
-preferred_prefixes: t.Dict[str,str] = {
-    str(rdflib.namespace.RDF):          'rdf',
-    str(rdflib.namespace.RDFS):         'rdfs',
-    str(rdflib.namespace.OWL):          'owl',
-    str(rdflib.namespace.XSD):          'xsd',
-    str(rdflib.namespace.FOAF):         'foaf',
-    str(rdflib.namespace.SKOS):         'skos',
-    str(rdflib.namespace.DOAP):         'doap',
-    str(rdflib.namespace.DC):           'dc',
-    str(rdflib.namespace.DCTERMS):      'dct',
-    str(rdflib.namespace.XMLNS):        'xml',
-    'http://www.w3.org/ns/dcat#':       'dcat',
-    'https://www.w3.org/2006/vcard/ns': 'vcard',
-    'http://www.w3.org/ns/adms#':       'adms',
-    f'{base}/logset#':                  'logset',
-    f'{base}/ddict#':                   'ddict',
-}
-
-import rdflib.namespace as ns
-well_known_namespaces = { 
-    prefix: ns.Namespace(url) for url,prefix in preferred_prefixes.items()
-}
-
-# well-known namespaces that we use in uris, but don't use semantically, so
-# no need to include them in the graph (especially, dcterms appears to be down
-# at the moment which breaks constructing the graph if we need to parse it)
-external_namespaces: t.Set[str] = set(
-    ns for ns,prefix in preferred_prefixes.items() if prefix in
-    ('rdf', 'rdfs', 'owl', 'xsd', 'skos', 'doap', 'dc', 'dct',
-     'dcat', 'vcard', 'xml', 'logset', 'ddict')
-)
-
-# actually:
-#   with LogSetGraph(persistence, path, create, clobber) as g:
-#     g.extend(..) etc
-# .. and persistence can be a local ttl file too
-
-
 import rdflib.plugins.sparql as sparql
 import tempfile
 from . import local_nm
@@ -98,6 +57,18 @@ import re
 class GraphExistsError(Exception):
     """ Attempted to parse a url that is already in the local graph """
     pass
+
+import rdflib.plugins.parsers.notation3 as notation3
+
+import rdflib.namespace as ns
+_csn=config.settings['namespaces'] # shorthand
+well_known_namespaces = { 
+    prefix: ns.Namespace(_csn[prefix]) for prefix in _csn
+}
+_csb=config.settings['bindings'] # shorthand
+well_known_namespaces.update({
+    prefix: ns.Namespace(_csb[prefix]) for prefix in _csb
+})
 
 class LogSetGraphBase(rdflib.ConjunctiveGraph):
     """ a graph based on the LogSet vocabulary """
@@ -121,17 +92,16 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         # uses the Graph default, which is to instantiate a NamespaceManager lazily.
         # But NamespaceManager is flaky, so we'll use a local one:
         self.namespace_manager = local_nm.LocalNM()
-        for p, ns in well_known_namespaces.items():
-            self.namespace_manager.bind(p, ns, override=True, replace=True)
+        for prefix,namespace in well_known_namespaces.items():
+            self.namespace_manager.bind(prefix, namespace, override=False, replace=False)
 
         for attr, value in kwargs.items():
             if not hasattr(self, attr):
                 setattr(self, attr, value)
 
     def __enter__(self):
-        if len(self)==0:
-            self.construct()
-        # on first open/entry, should probably sanity check that the graph?
+        self.construct()
+        # on first open/entry, should probably sanity check the graph?
         # (or maybe, assume all is well and upon querying for info, then report
         # "this graph has unknown parts")
         logger.info(f"on entry, graph has {len(self)} triples")
@@ -142,12 +112,16 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         self.commit()
 
     def construct(self):
+        """ idempotent method that ensures base graph is ready to use """
         if len(self)!=0:
             return
         logger.info("constructing the basic graph")
-        for url, prefix in preferred_prefixes.items():
-            self.namespace_manager.bind(prefix, url, override=True, replace=True)
+        urls = [ config.settings['namespaces'][p] for p in config.settings['namespaces'] ]
+        self.extend(*urls)
         self.extend(f"{config.etc}/logset#", f"{config.etc}/ddict#")
+        for prefix, namespace in self.namespaces():
+            logger.info(f"binding {prefix} -> {namespace} in store")
+            self.store.bind(prefix, namespace)
         logger.info(f"after construction, graph has {len(self)} triples")
         logger.debug(f"and these namespaces: {list(self.namespace_manager.namespaces())}")
 
@@ -180,7 +154,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         # to be its uri/namespace, and to add an assetdestribution to the default
         # context to record where it got this one from
         todo: t.Set[str] = set(url for url in urls)
-        done: t.Set[str] = set(str(n[1]) for n in self.namespaces()) | external_namespaces
+        done: t.Set[str] = set(str(n[1]) for n in self.namespaces())
         while todo:
             # first we parse the urls we know we need:
             for url in todo:
@@ -202,159 +176,58 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             todo.update(u for u in new_urls if u not in done)
         logger.info(f"after expand, graph has {len(self)} triples")
 
-    def ingest(self, url: str) -> None:
-        """ incorporate the triples at url into this graph as a new context """
-        if not (url.startswith('http:') or url.startswith('https:')):
-            url = 'file://' + os.path.abspath(url.replace('file://', '', 1))
-
+    def _collect(self, url: str) -> rdflib.Graph:
+        """ attempt to read url into an in-memory subgraph, which can then be 
+            added to the conjunctive graph
+        """
         uri = rdflib.URIRef(url)
-
-        # do we already have this uri?
-        uri_in_graph = """ SELECT ?uri WHERE {
-                       ?thing a adms:AssetDistribution .
-                       ?thing dcat:downloadURL ?uri .
-                     }
-                 """
-        if uri in self.default_context.query(uri_in_graph, initNs=well_known_namespaces):
+        if uri in self.contexts():
             raise GraphExistsError(f"graph already has {uri}")
 
-        #nm = local_nm.LocalNM()
         # read into an in-memory graph because the backends do a commit-per-triple
-        # which makes parsing the url painfully slow:
-        g = rdflib.Graph(identifier=uri, namespace_manager=self.namespace_manager)
+        # which makes parsing the url painfully slow. Each has it's own private 
+        # namespace_manager to prevent clashes caused by ingesting from multiple 
+        # sources
+        nm = local_nm.LocalNM()
+        g = rdflib.Graph(identifier=uri, namespace_manager=nm)
         fmt = rdflib.util.guess_format(uri)
+        logger.info(f"\ntrying to parse {uri} with format {fmt}")
         try:
-            logger.info(f"\ntrying to parse {uri} with format {fmt}")
             g.parse(uri, format=fmt)
-        except (FileNotFoundError, urllib.error.HTTPError):
-            uri = rdflib.URIRef(f"{url.rstrip('#')}.ttl")
-
-            # check again for if this uri is already here too
-            if uri in self.default_context.query(uri_in_graph, initNs=well_known_namespaces):
-                raise GraphExistsError(f"graph already has {uri}")
-
-            logger.info(f"trying again with {uri}")
-            g.parse(uri, format='turtle')
-        except rdflib.plugins.parsers.notation3.BadSyntax as e:
+        except notation3.BadSyntax as e:
             logger.critical(f"Syntax error in {uri}: {e}")
             sys.exit(1)
         except:
             raise
 
-        # describe the thing I just passed:
-        thing = uri
-        # FIXME: find what it refers to itself as (eg what if anything does it 
-        # include as myprefix:) and use that for thing
-        nm = self.namespace_manager
-        g.add((thing, nm.term('rdf:type'), nm.term('adms:AssetDistribution')))
-        g.add((thing, nm.term('dcat:downloadURL') ,uri))
+        return g
+
+
+    def ingest(self, url: str) -> None:
+        """ incorporate the triples at url into this graph as a new context """
+        if not (url.startswith('http:') or url.startswith('https:')):
+            url = 'file://' + os.path.abspath(url.replace('file://', '', 1))
+
+        try:
+            g = self._collect(url)
+        except GraphExistsError:
+            pass
+        except (FileNotFoundError, urllib.error.HTTPError):
+            url = f"{url.rstrip('#')}.ttl"
+            logger.info(f"trying again with {url}")
+            g = self._collect(url)
 
         # TODO pull out the triples with blank nodes, because we will need to replace the 
         # blank nodes with blank nodes from self, to avoid collisions
 
-        # TODO bind/merge the namespaces
-        my_namespace = ''
-        for prefix, namespace in g.namespaces():
-            logger.debug(f"preparing to bind {prefix} -> {namespace}")
-            if prefix == '':
-                # blank prefix usually indicates the namespace associated with the url we 
-                # are ingesting, so remember it:
-                logger.debug(f"skipping empty prefix, remembering {namespace}")
-                my_namespace = namespace
-                continue
-            try:
-                # namespace bindings in existing graph get priority
-                # ah: but if the existing binding has a prefix like _blah, then it was 
-                # autogenerated, and an explicitly chosen one is better
-                self.namespace_manager.bind(prefix, namespace, override=False, replace=False)
-                logger.info(f"bound {prefix}: {namespace}")
-            except local_nm.PrefixInUse:
-                #if prefix:
-                # what's best to do here? perhaps inform the user and let them rebind later
-                logger.warning(f"dropping binding of '{prefix}' -> {namespace}")
-            except local_nm.NamespaceAlreadyBound:
-                logger.info(f"skipping already bound {prefix} -> {namespace}")
-                pass
+        # we don't care about the namespace bindings from within the subgraph
+        # TODO but we should label the subgraphs we explicitly added 
+        # (maybe as part of the 'use' command)
+        # (and info command should show contexts too)
 
-        if my_namespace:
-            if not self.namespace_manager.prefix(my_namespace):
-                # make a dummy prefix starting with "_" (to indicate it was generated)
-                # and looking a bit like the url basename (to hint where it came from)
-                hint = re.match('\w+', uri.rpartition('/')[2].lower()).group(0)
-                prefix = ''.join(['_',hint,'_',ran_str(4)])
-                logger.info(f"attempting to rebind {prefix} to {my_namespace}")
-                try:
-                    self.namespace_manager.bind(prefix, my_namespace, override=False, replace=False)
-                except local_nm.NamespaceAlreadyBound:
-                    pass # its ok to not bind a dummy prefix
-            else:
-                logger.info(f"found my namespace {my_namespace} bound to {self.namespace_manager.prefix(my_namespace)}")
-
-        # now make sure the store is updated:
-        # note that namespace management in sqlalchemy store (at least) is incomplete,
-        # it simply tries to insert a new namespace record, failing due to UniqueConstraint
-        # it is it already there. And there is no provision for unbinding a prefix. So, 
-        # work around it:
-        for prefix, namespace in self.namespaces():
-            # find out what the store knows:
-            p = self.store.prefix(namespace)
-            n = self.store.namespace(prefix)
-            if prefix and not n and not prefix.startswith('_'):
-                # why doesn't this stay recorded in the store?
-                logger.info(f"binding {prefix} -> {namespace} in store")
-                self.store.bind(prefix, namespace)
-            else:
-                logger.info(f"not binding {prefix} -> {namespace} in store because n is {n} or {prefix} has _")
-
-        new_context = self.get_context(uri)
+        new_context = self.get_context(g.identifier)
         quads = ((s,p,o,new_context) for s,p,o in g.triples((None,None,None)))
         new_context.addN(quads)
-
-#    def _try_to_parse(self, url:str) -> None:
-#        fmt = rdflib.util.guess_format(url)
-#        try:
-#            logger.info(f"trying to parse {url} with format {fmt}")
-#            self.parse(url, format=fmt)
-#        except (FileNotFoundError, urllib.error.HTTPError):
-#            logger.info(f"trying again with as {url.rstrip('#')}.ttl")
-#            self.parse(f"{url.rstrip('#')}.ttl", format='turtle')
-#        except rdflib.plugins.parsers.notation3.BadSyntax as e:
-#            logger.critical(f"Syntax error in {url}: {e}")
-#            sys.exit(1)
-#        except:
-#            raise
-#
-#    # FIXME with localnm this might not be needed
-#    def _canonicalize_namespaces(self) -> None:
-#        """ ensure the prefix we have for each namespace is predictable """
-#        readable = lambda seq: '\n'.join(str(i) for i in seq)
-#        logger.info(f"canonicalizing from {readable(self.namespaces())}")
-#        rebinds: t.Dict[rdflib.term.URIRef,str] = {}
-#        for prefix,ns in self.namespaces():
-#            url = str(ns)
-#            if prefix == '':
-#                # turtle files typically use an empty prefix for "this file",
-#                # replace it with one based on the url:
-#                prefix = url[url.rfind('/')+1:].rstrip('#')
-#                rebinds[ns] = prefix
-#                logger.info(f"found empty prefix for {url}, rebinding to {prefix}")
-#                # rdflib currently doesn't correctly remove empty prefixes, which 
-#                # leads to a subsequent parsing with an empty prefix to rebind this 
-#                # namespace to an arbitrary prefix. Carefully prevent this:
-#                # (FIXME with a future version of rdflib, this should not be required)
-#                rebinds[''] = None
-#            # note fall through to checking for preferred prefixes
-#            if url in preferred_prefixes:
-#                preferred = preferred_prefixes[url]
-#                if prefix != preferred:
-#                    rebinds[ns] = preferred
-#                    logger.info(f"found better prefix {preferred} for {url}, rebinding from {prefix}")
-#        for ns, prefix in rebinds.items():
-#            logger.info(f"doing rebinding {prefix} to {ns}")
-#            #self.namespace_manager.bind(prefix, ns, replace=True)
-#            self.namespace_manager.bind(prefix, ns, override=True, replace=True)
-#            #self.bind(prefix, rdflib.namespace.Namespace(ns), override=True, replace=True)
-#            logger.info(f"namespaces are now {readable(self.namespaces())}")
 
 graph_classes['None'] = LogSetGraphBase
 
