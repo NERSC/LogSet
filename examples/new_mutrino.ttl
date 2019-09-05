@@ -2,19 +2,22 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix adms: <http://www.w3.org/ns/adms#> .
 @prefix dct: <http://purl.org/dc/terms/> .
-@prefix logset: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/logset#> .
-@prefix ddict: <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/ddict#> .
-@prefix craydict: <http://FIXME/where/is/craydict/published#> .
+@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+@prefix logset: <logset#> .
+@prefix ddict: <ddict#> .
+
+@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+@prefix craydict: <cray-dict#> .
 
 # declare myself and set a prefix:
-@base <http://FIXME/where/will/this/be/published> .
-@prefix : <FIXME-edison-arch#> .
+@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+@prefix : <mutrino-arch#> .
 
 :
-	a adms:Asset ;
-	dct:title "FIXME give this file a title" ;
-	rdfs:label "FIXME short label" ;
-	.
+    a adms:Asset ;
+    dct:title "Mutrino architecture" ;
+    rdfs:label "mutrino arch" ;
+    .
 
 :c0_0 a ddict:Cabinet ;
 	logset:hasPart :c0_0c0;
