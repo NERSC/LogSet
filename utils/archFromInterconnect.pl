@@ -48,9 +48,9 @@ my %HoHcabinet; #for each cab, hash of chassis
 my %HoHchassis; # for each chassis, hash of slots
 my %HoHslot; # for each slot, infer the nodes and the rtrs
 my %HoHaries; # for each aries, tiles and NICs (value is type)
-my %HoHlink; # for each link --  e1, e2, type. name of the link will be name of the tile. includes ptile links
+my %HoHlink; # for each link --  e1, e2, type. name of the link will be name of the tile. 
 my %HoHPcieLink; # between node and NIC
-my %HoHendpoint; #for each link endpoint, which it its link? nodes, NICs, and tiles all go in here
+my %HoHendpoint; #for each link endpoint, which it its link(s)? nodes, NICs, and tiles all go in here
 #NICs are endpoints of links (from tile) and pcielinks (to node)
 
 #c0-0c0s0a0l00(0:0:0) green -> c0-0c0s6a0l10(0:0:6)
@@ -68,9 +68,62 @@ if (!($arch eq "XC")){ # && !($arch eq "XE")){
     die "Only XC supported\n";
 }
 
+sub getLinkname{
+    my ($a, $b, $type) = @_;
+
+    if ($type eq "PTL"){
+	#this will always be link and NIC
+#	return "ptile" . $a . "x" . $b;
+	return "link" . $a;
+    } else {
+
+	$a =~ /c(\d+)_(\d+)c(\d+)s(\d+)/;
+	my $arow = $1;
+	my $acol = $2;
+	my $achassis = $3;
+	my $aslot = $4;
+
+	$b =~ /c(\d+)_(\d+)c(\d+)s(\d+)/;
+	my $brow = $1;
+	my $bcol = $2;
+	my $bchassis = $3;
+	my $bslot = $4;
+	
+	my $name;
+	if ($arow < $brow){
+#	    $name = "link" . $a . "x" . $b;
+	    $name = "link" . $a; 
+	} elsif ($arow > $brow){
+#	    $name = "link" . $b . "x" . $a;
+	    $name = "link" . $b;
+	} elsif ($acol < $bcol){
+#	    $name = "link" . $a . "x" . $b;
+	    $name = "link" . $a; 
+	} elsif ($acol > $bcol){
+#	    $name = "link" . $b . "x" . $a;
+	    $name = "link" . $b;
+	} elsif ($achassis < $bchassis){
+#	    $name = "link" . $a . "x" . $b;
+	    $name = "link" . $a; 
+	} elsif ($achassis > $bchassis){
+#	    $name = "link" . $b . "x" . $a;
+	    $name = "link" . $b;
+	} elsif ($aslot < $bslot){
+#	    $name = "link" . $a . "x" . $b;
+	    $name = "link" . $a; 
+	} elsif($aslot > $bslot){
+#	    $name = "link" . $b . "x" . $a;
+	    $name = "link" . $b;
+	}
+
+	return $name;
+    }
+}
+
+
 sub addLink{
     my ($R0,$E0,$R1,$E1,$lname0,$type) = @_;
-    #add this link, otherwise we already have it from the other end
+    #add this link. ok if duplicate
     $HoHlink{$lname0}{'E0'} = $E0;
     $HoHlink{$lname0}{'E1'} = $E1;
     $HoHlink{$lname0}{'R0'} = $R0;
@@ -86,11 +139,23 @@ sub addEndpoint{
 	return; # unused
     }
 
+    # can be an endpoint of multiple links (e.g., the NIC is an endpoint of three things)
     my @arr;
     if (exists $HoHendpoint{$E0}{'links'} ){
 	@arr =  @{$HoHendpoint{$E0}{'links'}};
-	push @arr, $lname0;
+	#don't add it if we already have it for this endpoint
+	my $found = 0;
+	foreach my $val (@arr){
+	    if (!($val cmp $lname0)){
+		$found = 1;
+	    }
+	}
+	if (!$found){
+#	    print "adding $lname0 for endpoint $E0\n";
+	    push @arr, $lname0;
+	}
     } else {
+#	print "adding $lname0 for endpoint $E0\n";
 	$arr[0] = $lname0;
     }
     @{$HoHendpoint{$E0}{'links'}} = @arr;
@@ -100,8 +165,10 @@ sub printEndpoint{
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHendpoint) ){
 	my $ep = $_;
 
-	if ($HoHendpoint{$ep}{'type'} =~ /TLE/){
-	    print ":$ep a craydict:AriesRouterTile ;";
+	if ($HoHendpoint{$ep}{'type'} =~ /PTL/){
+	    print ":$ep a craydict:PTile ;";
+	} elsif ($HoHendpoint{$ep}{'type'} =~ /NET/){
+	    print ":$ep a craydict:NetworkTile ;";
 	} elsif ($HoHendpoint{$ep}{'type'} =~ /NIC/){
 	    print ":$ep a ddict:NIC ;";
 	} elsif ($HoHendpoint{$ep}{'type'} =~ /NDE/){
@@ -122,9 +189,10 @@ sub printEndpoint{
 }
 
 sub addTile{
-    my ($R0,$E0,$arch) = @_;
+    #ok if duplicates come in
+    my ($R0,$E0,$arch,$type) = @_;
     if ($arch =~ /XC/){
-	$HoHaries{$R0}{$E0} = "TLE"; #child of the aries
+	$HoHaries{$R0}{$E0} = $type; #child of the aries
 #    } else {
 #	$HoHgemini{$R0}{$E0} = "TLE"; #child of the gemini DNE yet.....
     }
@@ -266,6 +334,7 @@ while(<$fh>){
     chomp;
     my $line = $_;
     $line =~ tr/-/_/; # WARNING: will need to do underscore in all the matching...
+#    print "<$line>\n";
 
     if ($line =~ /\_>/){
 	my @vals = split(/\s+/,$line);
@@ -281,16 +350,22 @@ while(<$fh>){
 
 	#what type of connection is this?
 	my $type = -1;
+	my $tiletype = -1;
 	if ($vals[1] eq 'blue'){
 	    $type = "BLU";
+	    $tiletype = "NET";
 	} elsif ($vals[1] eq 'black'){
 	    $type = "BLK";
+	    $tiletype = "NET";
 	} elsif ($vals[1] eq 'green'){
 	    $type = "GRE";
+	    $tiletype = "NET";
 	} elsif ($vals[1] eq 'ptile'){ # ptile only in the aries rtr output
 	    $type = "PTL";
+	    $tiletype = "PTL";
 	} elsif ($vals[1] eq 'host'){ # DNE
 	    $type = "HST";
+	    $tiletype = "HST";
 #NOTE: for gemini direction matters...so either have to double add if tracking directions, or drop +/- if not
         } elsif ($vals[1] eq 'X+'){
 #	    $type = "Xp";
@@ -319,41 +394,39 @@ while(<$fh>){
 	    $E0 = $1;
 	    if ($E0 =~ /(.*)l/){
 		$R0 = $1;
-		addTile($R0,$E0,$arch);
+		addTile($R0,$E0,$arch,$tiletype);
 	    }
 	}
 
-	if (($vals[3] =~ /(.*)\[/) || ($vals[3] =~ /(.*\d)\(/)){
-	    # this is a 2-ended link
+	if (($vals[3] =~ /(.*)\[/) || ($vals[3] =~ /(.*\d)\(/)){ 
+	    # this is a 2-ended link, tile wise. (processor or unused are the other options)
 	    $E1 = $1;
 	    if ($E1 =~ /(.*)l/){
 		$R1 = $1;
-		#dont add the router for this side; will pick it up on the other side of the link
+		# for Aries, the tiletype will be the same. NOTE: Gemini should be inverse
+		addTile($R1,$E1,$arch,$tiletype);
 	    }
 
-	    # these will readin as double, one for each endpoint, so check to see if we already have this one
-	    my $lname0 = "link" . $E0;
-	    my $lname1 = "link" . $E1;
-	    if (!(exists $HoHlink{$lname0}) && !(exists $HoHlink{$lname1})){
-		#add this link, otherwise we already have it from the other end
-		#NOTE: for gemini direction matters...so either have to double add if tracking directions, or drop +/- if not
-		addEndpoint($E0,"TLE",$lname0);
-		addEndpoint($E1,"TLE",$lname0);
-		addLink($R0,$E0,$R1,$E1,$lname0,$type);
-	    }
+	    # NEW: an Aries Link will still go in once, but it will be named by the two rtr endpoints, 
+	    # in semi-alphabetical order not the linkname
+	    
+	    my $linkname = getLinkname($E0,$E1,$type); # need tiles, since there are 3 blacks with same endpoints
+	    #TODO: decide what to do with gemini (since those have directions). Does that go in double or drop the +/- ?
+	    addEndpoint($E0,$tiletype,$linkname);
+	    addEndpoint($E1,$tiletype,$linkname);
+	    addLink($R0,$E0,$R1,$E1,$linkname,$type);
 	} elsif ($vals[3] =~ /unused/){ # only happens for Aries
 	    #$E1 = "unused"; does not matter
 	    #$R1 = "unused"; does not matter
 	    #add the tile, but not the link
-	    addTile($R0,$E0,$arch);
-	    addEndpoint($E0,"TLE","N/A");
+	    addTile($R0,$E0,$arch,$tiletype); #include the type, even if unused
+	    addEndpoint($E0,$tiletype,"N/A");
 	} elsif ($vals[3] =~ /processor/){
 	    if ($arch  eq "XC"){
 		# This endpoint is a NIC. aries has 4 NIC and 8 ptiles, in order. get the last digit
 		# NIC will be endpoint of 2 ptilelinks and 1 pcie link.
 		my $node = -1;
 		if ($E0 =~ /.*(\d)/){
-		    my $lname0 = "link" . $E0;
 		    $R1 = $R0;
 		    my $lastdigit = $1;
 		    if ($lastdigit < 2){
@@ -370,11 +443,12 @@ while(<$fh>){
 		    
 		    $E1 = $R0 . "n". $node;
 #		    print "adding ptile <$E0>\n";
-		    addTile($R0,$E0,$arch);
-#		    print "adding endpint <$E0> to link $lname0\n";
-		    addEndpoint($E0,"TLE",$lname0); # add tile as endpoint
-		    addLink($R0,$E0,$R1,$E1,$lname0,$type); #add the ptile link. 
-		    addNICandNode($R1,$E1,$node,$lname0); # if DNE
+		    addTile($R0,$E0,$arch,$tiletype);
+		    my $linkname = getLinkname($E0,$E1,$type); #ptile link name includes the tile
+#		    print "adding endpoint <$E0> to link $linkname\n";
+		    addEndpoint($E0,$tiletype,$linkname); # add tile as endpoint
+		    addLink($R0,$E0,$R1,$E1,$linkname,$type); #add the ptile link. 
+		    addNICandNode($R1,$E1,$node,$linkname); # if DNE
 		}
 	    } else {  # for gemini, the NIC facing tiles must be inferred
 		die "Can't handle processor tiles for Gemini";
