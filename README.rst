@@ -33,6 +33,18 @@ vocabulary, a data dictionary and the contents of a LogSet
 
 To prepare:
  - install anaconda 3.6+
+ - make an environment for anno:
+    conda create --name=anno python=3.6
+ - use it:
+    conda activate anno
+ - add logset to it:
+    cd $logset_repo
+    python ./setup.py install
+ - cd back to anno
+    test with `python -c "import logset"`
+
+
+
  - conda env create -f environment.yml
  - conda activate logsets
  - pip install -e requirements-conda.txt
