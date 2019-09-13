@@ -18,13 +18,13 @@ import pkg_resources
 try:
     dist = pkg_resources.get_distribution('logset')
     etc = dist.location
-    print("found logset distribution at:")
-    print(etc)
+    logging.info("found logset distribution at:")
+    logging.info(etc)
 except pkg_resources.DistributionNotFound:
     _installdir = os.path.join(os.path.dirname(__file__), '..', '..')
-    print(_installdir)
+    logging.info(_installdir)
     installdir: str = os.path.abspath(_installdir)
-    print("no logset distribution, using:")
+    logging.info("no logset distribution, using:")
     etc: str = os.path.join(installdir, 'etc')
 except:
     raise

@@ -20,7 +20,7 @@ from .. import queries
 
 def run(params: t.Dict[str,str]):
 
-    print(params)
+    logging.debug(params)
     if params['sparql']:
         logger.info("got sparql query:")
         logger.info(params['sparql'])

@@ -11,9 +11,9 @@ from .. import graph
 import typing as t
 
 def run(params: t.Dict[str,str]):
-    print("running info command")
+    logging.info("running info command")
 
-    print(f"inspecting {config.settings['persistence']['name']}")
+    logging.debug(f"inspecting {config.settings['persistence']['name']}")
     with graph.LogSetGraph() as g:
         contexts = [ c for c in g.contexts() ]
         print(f"found {len(g)} triples in {len(contexts)} subgraphs")
