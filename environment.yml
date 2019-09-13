@@ -1,0 +1,15 @@
+name: logsets
+channels:
+  - conda-forge
+dependencies:
+  # core stuff:
+  - rdflib
+  - sqlalchemy
+#  - rdflib_sqlalchemy
+  # used by LocalNSM:
+  - bidict
+  # handles configuration/settings
+  - toml
+#  - deepmerge
+  # used in testing
+  - behave

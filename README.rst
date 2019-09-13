@@ -30,3 +30,9 @@ vocabulary, a data dictionary and the contents of a LogSet
 
 .. _`Turtle/RDF`: https://www.w3.org/TR/turtle/
 
+
+To prepare:
+ - install anaconda 3.6+
+ - conda env create -f environment.yml
+ - conda activate logsets
+ - pip install -e requirements-conda.txt
