@@ -1,0 +1,4 @@
+include etc/*
+include logs.py
+include README.rst
+include utils/*
