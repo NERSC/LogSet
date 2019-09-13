@@ -20,6 +20,14 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     include_package_data=True,
+    data_files=[
+        ('', [
+            'etc/ddict.ttl',
+            'etc/defaults.toml',
+            'etc/logset.ttl',
+            'utils/archFromInterconnect.pl'
+        ]),
+    ],
     python_requires='>=3.6',
     install_requires=[
         'sqlalchemy',

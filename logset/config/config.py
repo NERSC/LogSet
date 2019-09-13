@@ -13,9 +13,21 @@ import logging
 import typing as t
 
 import os
-_installdir = os.path.join(os.path.dirname(__file__), '..', '..')
-installdir: str = os.path.abspath(_installdir)
-etc: str = os.path.join(installdir, 'etc')
+#FIXME: make this more elegant:
+import pkg_resources
+try:
+    dist = pkg_resources.get_distribution('logset')
+    etc = dist.location
+    print("found logset distribution at:")
+    print(etc)
+except pkg_resources.DistributionNotFound:
+    _installdir = os.path.join(os.path.dirname(__file__), '..', '..')
+    print(_installdir)
+    installdir: str = os.path.abspath(_installdir)
+    print("no logset distribution, using:")
+    etc: str = os.path.join(installdir, 'etc')
+except:
+    raise
 
 import toml
 import deepmerge
