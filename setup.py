@@ -21,12 +21,20 @@ setuptools.setup(
     ],
     include_package_data=True,
     data_files=[
-        ('', [
+        ('etc', [
             'etc/ddict.ttl',
             'etc/defaults.toml',
             'etc/logset.ttl',
+        ]),
+        ('utils', [
             'utils/archFromInterconnect.pl'
         ]),
+#        ('', [
+#            'etc/ddict.ttl',
+#            'etc/defaults.toml',
+#            'etc/logset.ttl',
+#            'utils/archFromInterconnect.pl'
+#        ]),
     ],
     python_requires='>=3.6',
     install_requires=[

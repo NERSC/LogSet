@@ -17,7 +17,7 @@ import os
 import pkg_resources
 try:
     dist = pkg_resources.get_distribution('logset')
-    etc = dist.location
+    etc: str = os.path.join(dist.location, 'etc')
     logging.info("found logset distribution at:")
     logging.info(etc)
 except pkg_resources.DistributionNotFound:

@@ -277,6 +277,11 @@ class LogSetGraphInSQL(LogSetGraphBase):
 
 graph_classes['SQLite3'] = LogSetGraphInSQL
 
+class LogSetGraphInMemory(LogSetGraphBase):
+    def __init__(self, **kwargs):
+        super().__init__(store='default', **kwargs)
+
+graph_classes['Memory'] = LogSetGraphInMemory
 
 class LogSetGraphInTurtleFile(LogSetGraphBase):
 

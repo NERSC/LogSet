@@ -20,18 +20,26 @@ from .. import queries
 
 def run(params: t.Dict[str,str]):
 
-    logging.debug(params)
+    # copy the graph to an in-memory one for faster querying:
+    gfile = graph.LogSetGraph()
+    gmem = graph.LogSetGraph(persistence='Memory')
+    gmem.addN(gfile.quads())
+
+    logger.debug(params)
     if params['sparql']:
         logger.info("got sparql query:")
         logger.info(params['sparql'])
-        with graph.LogSetGraph() as g:
+#        with graph.LogSetGraph() as g:
+        with gmem as g:
             for row in g.query(params['sparql'][0]):
                 print([g.qname(term) for term in row if term])
     elif params['containers']:
-        for type_, parent, thing in queries.arch_parents(graph.LogSetGraph(), params['subject']):
+        #for type_, parent, thing in queries.arch_parents(graph.LogSetGraph(), params['subject']):
+        for type_, parent, thing in queries.arch_parents(gmem, params['subject']):
             print(f"{type_:20}  {parent:20}  holds {thing}")
     elif params['parent']:
-        parent = queries.arch_parent(graph.LogSetGraph(), params['subject'],params['parent'][0])
+        #parent = queries.arch_parent(graph.LogSetGraph(), params['subject'],params['parent'][0])
+        parent = queries.arch_parent(gmem, params['subject'],params['parent'][0])
         print(f"{parent}")
         
 
