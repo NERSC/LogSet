@@ -109,6 +109,17 @@
     rdfs:label "smw" ;
     .
 
+# Cray cluster nodes are often referred to by a specialized label called a cname:
+:cname
+    a owl:DatatypeProperty ;
+    rdfs:comment """ Components of a Cray cluster are uniquely referred to via their cname, 
+                     which incorporates the component's location in the cluster
+                 """ ;
+    rdfs:domain logset:Subject ;
+    rdfs:range rdfs:Literal ;
+    .
+
+
 #:aries_status_snapshots a logset:infoType .
 #
 #

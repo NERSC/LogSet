@@ -1,3 +1,4 @@
-rdflib_sqlalchemy
+rdflib-sqlalchemy
 deepmerge
+html5lib
 

@@ -8,7 +8,7 @@ archFromInterconnect.pl
 
 =head1 SYNOPSIS
 
-./archFromInterconnect.pl --rtrfile=rtr.out --arch=XC > arch.out
+./archFromInterconnect.pl --name=mycluster --rtrfile=rtr.out --arch=XC > arch.out
 
 
 =head1 DESCRIPTION
@@ -59,9 +59,11 @@ my %HoHendpoint; #for each link endpoint, which it its link(s)? nodes, NICs, and
 
 my $arch='';
 my $rtrfile='';
+my $clustername='mycluster';
 
 GetOptions("arch=s" => \$arch,
-           "rtrfile=s" => \$rtrfile)
+           "rtrfile=s" => \$rtrfile,
+           "name=s" => \$clustername)
 or die "Error in command line arguments\n";
 
 if (!($arch eq "XC")){ # && !($arch eq "XE")){
@@ -77,13 +79,13 @@ sub getLinkname{
 	return "link" . $a;
     } else {
 
-	$a =~ /c(\d+)_(\d+)c(\d+)s(\d+)/;
+	$a =~ /c(\d+)-(\d+)c(\d+)s(\d+)/;
 	my $arow = $1;
 	my $acol = $2;
 	my $achassis = $3;
 	my $aslot = $4;
 
-	$b =~ /c(\d+)_(\d+)c(\d+)s(\d+)/;
+	$b =~ /c(\d+)-(\d+)c(\d+)s(\d+)/;
 	my $brow = $1;
 	my $bcol = $2;
 	my $bchassis = $3;
@@ -164,19 +166,22 @@ sub addEndpoint{
 sub printEndpoint{
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHendpoint) ){
 	my $ep = $_;
+    my $epid = $ep =~ tr/-/_/r;
 
 	if ($HoHendpoint{$ep}{'type'} =~ /PTL/){
-	    print ":$ep a craydict:PTile ;";
+	    print ":$epid a craydict:PTile ;";
 	} elsif ($HoHendpoint{$ep}{'type'} =~ /NET/){
-	    print ":$ep a craydict:NetworkTile ;";
+	    print ":$epid a craydict:NetworkTile ;";
 	} elsif ($HoHendpoint{$ep}{'type'} =~ /NIC/){
-	    print ":$ep a ddict:NIC ;";
+	    print ":$epid a ddict:NIC ;";
 	} elsif ($HoHendpoint{$ep}{'type'} =~ /NDE/){
-	    print ":$ep a ddict:ComputeNode ;";
+	    print ":$epid a ddict:ComputeNode ;";
 	}
+    print "\n\trdfs:label \"$ep\" ;" ;
 
 	if (exists $HoHendpoint{$ep}{'links'}){
 	    foreach my $val ( @{$HoHendpoint{$ep}{'links'}} ){
+        $val =~ tr/-/_/;
 		print "\n\tlogset:endPointOf :" . $val . ";";
 	    }
 	} else {
@@ -226,9 +231,12 @@ sub addNICandNode{
 
 sub printCabinet{
     foreach my $cab (sort { $a <=> $b || $a cmp $b } keys(%HoHcabinet) ){
-	print ":$cab a ddict:Cabinet ;\n";
+    my $cabid = $cab =~ tr/-/_/r;
+	print ":$cabid a ddict:Cabinet ;\n";
+    print "\trdfs:label \"$cab\" ;\n";
 	foreach my $chassis (sort { $a <=> $b || $a cmp $b } keys %{ $HoHcabinet{$cab} } ){
-	    print "\tlogset:hasPart :$chassis;\n";
+        my $chassisid = $chassis =~ tr/-/_/r;
+	    print "\tlogset:hasPart :$chassisid;\n";
 	}
 	print "\t.\n";
 	print "\n";
@@ -239,10 +247,13 @@ sub printCabinet{
 sub printChassis{
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHchassis) ){
 	my $chassis = $_;
+    my $chassisid = $chassis =~ tr/-/_/r;
     
-	print ":$chassis a ddict:Chassis ;\n";
+	print ":$chassisid a ddict:Chassis ;\n";
+    print "\trdfs:label \"$chassis\" ;\n";
 	foreach (sort { $a <=> $b || $a cmp $b } keys %{ $HoHchassis{$chassis} } ){
 	    my $slot = $_;
+        $slot =~ tr/-/_/;
 	    print "\tlogset:hasPart :$slot;\n";
 	}
 	print "\t.\n";
@@ -258,15 +269,17 @@ sub printAriesSlot{
 
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHslot) ){
 	my $slot = $_;
-	print ":$slot a ddict:Blade ;\n";
+    my $slotid = $slot =~ tr/-/_/r;
+	print ":$slotid a ddict:Blade ;\n";
+    print "\trdfs:label \"$slot\" ;\n";
 
 	#well known slots have nodes
 	for (my $i = 0; $i < $nnodes; $i++){
-	    print "\tlogset:hasPart :$slot" . "n$i;\n";
+	    print "\tlogset:hasPart :$slotid" . "n$i;\n";
 	}
 
 	#well known slots have routers
-	print "\tlogset:hasPart :$slot" . "a0;\n";
+	print "\tlogset:hasPart :$slotid" . "a0;\n";
 	print "\t.\n";
 	print "\n";
     }
@@ -278,10 +291,13 @@ sub printAries{
 
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHaries) ){
 	my $aries = $_;
-	print ":$aries a craydict:AriesRouter ;\n";
+    my $ariesid = $aries =~ tr/-/_/r;
+	print ":$ariesid a craydict:AriesRouter ;\n";
+    print "\trdfs:label \"$aries\" ;\n";
 	foreach (sort { $a <=> $b || $a cmp $b } keys %{ $HoHaries{$aries} } ){
 	    my $child = $_; # children are both TILES and NICS. Here we do not care which type
-	    print "\tlogset:hasPart :$child;\n";
+        my $childid = $child =~ tr/-/_/r;
+	    print "\tlogset:hasPart :$childid;\n";
 	}
 	print "\t.\n";
 	print "\n";
@@ -291,7 +307,8 @@ sub printAries{
 sub printPcieLink{
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHPcieLink) ){
 	my $link = $_;
-	print ":$link a ddict:PCIeLink .\n";
+    my $linkid = $link =~ tr/-/_/r;
+	print ":$linkid a ddict:PCIeLink .\n";
     }
     print "\n";
 }
@@ -300,27 +317,28 @@ sub printPcieLink{
 sub printLink{
     foreach (sort { $a <=> $b || $a cmp $b } keys(%HoHlink) ){
 	my $link = $_;
+    my $linkid = $link =~ tr/-/_/r;
 
 	if ($HoHlink{$link}{'type'} =~ /BLU/){
-	    print ":$link a craydict:BlueLink .\n";
+	    print ":$linkid a craydict:BlueLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /GRE/){
-	    print ":$link a craydict:GreenLink .\n";
+	    print ":$linkid a craydict:GreenLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /BLK/){
-	    print ":$link a craydict:BlackLink .\n";
+	    print ":$linkid a craydict:BlackLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /PTL/){
-	    print ":$link a craydict:PtileLink .\n";
+	    print ":$linkid a craydict:PtileLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /Xp/){
-	    print ":$link a craydict:XpLink .\n";
+	    print ":$linkid a craydict:XpLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /Xm/){
-	    print ":$link a craydict:XmLink .\n";
+	    print ":$linkid a craydict:XmLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /Yp/){
-	    print ":$link a craydict:YpLink .\n";
+	    print ":$linkid a craydict:YpLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /Ym/){
-	    print ":$link a craydict:YmLink .\n";
+	    print ":$linkid a craydict:YmLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /Zp/){
-	    print ":$link a craydict:ZpLink .\n";
+	    print ":$linkid a craydict:ZpLink .\n";
 	} elsif ($HoHlink{$link}{'type'} =~ /Zm/){
-	    print ":$link a craydict:ZmLink .\n";
+	    print ":$linkid a craydict:ZmLink .\n";
 	}
     }
     print "\n";
@@ -333,10 +351,10 @@ open(my $fh, "<", $rtrfile)
 while(<$fh>){
     chomp;
     my $line = $_;
-    $line =~ tr/-/_/; # WARNING: will need to do underscore in all the matching...
+#    $line =~ tr/-/_/; # WARNING: will need to do underscore in all the matching...
 #    print "<$line>\n";
 
-    if ($line =~ /\_>/){
+    if ($line =~ /\->/){
 	my @vals = split(/\s+/,$line);
 	if (($arch eq "XC" && (scalar(@vals) != 4)) ||
 	    ($arch eq "XE" && (scalar(@vals) != 6))){
@@ -370,19 +388,19 @@ while(<$fh>){
         } elsif ($vals[1] eq 'X+'){
 #	    $type = "Xp";
 	    $type = "X";
-        } elsif ($vals[1] eq 'X_'){
+        } elsif ($vals[1] eq 'X-'){
 #	    $type = "Xm";
 	    $type = "X";
         } elsif ($vals[1] eq 'Y+'){
 #	    $type = "Yp";
 	    $type = "Y";
-        } elsif ($vals[1] eq 'Y_'){
+        } elsif ($vals[1] eq 'Y-'){
 #	    $type = "Ym";
 	    $type = "Y";
         } elsif ($vals[1] eq 'Z+'){
 #	    $type = "Zp";
 	    $type = "Z";
-        } elsif ($vals[1] eq 'Z_'){
+        } elsif ($vals[1] eq 'Z-'){
 #	    $type = "Zm";
 	    $type = "Z";
 	} else {
@@ -456,13 +474,13 @@ while(<$fh>){
 	}
 
 	# add the cab, chassis, slot if exist
-	if ($R1 =~ /(c\d+_\d+)/){
+	if ($R1 =~ /(c\d+-\d+)/){
 	    my $cab = $1;
-	    if ($R1 =~ /(c\d+_\d+c\d+)/){
+	    if ($R1 =~ /(c\d+-\d+c\d+)/){
 		my $chassis = $1;
 		$HoHcabinet{$cab}{$chassis} = 1;
 		my $slot = -1;
-		if ($R1 =~ /(c\d+_\d+c\d+s\d+)/){
+		if ($R1 =~ /(c\d+-\d+c\d+s\d+)/){
 		    $slot = $1;
 		}
 		$HoHchassis{$chassis}{$slot} = 1;
@@ -490,12 +508,20 @@ print "\@prefix craydict: <cray-dict#> .\n";
 print "\n";
 print "# declare myself and set a prefix:\n";
 print "\@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .\n";
-print "\@prefix : <FIXME-edison-arch#> .\n";
+print "\@prefix : <$clustername-arch#> .\n";
 print "\n";
 print ":\n";
 print "\ta adms:Asset ;\n";
-print "\tdct:title \"FIXME give this file a title\" ;\n";
-print "\trdfs:label \"FIXME short label\" ;\n";
+print "\tdct:title \"$clustername architecture\" ;\n";
+print "\trdfs:label \"$clustername\" ;\n";
+print "\t.\n";
+print "\n";
+print ":$clustername a ddict:Cluster ;\n";
+print "\trdfs:label \"$clustername\" ;\n";
+foreach my $cab (sort { $a <=> $b || $a cmp $b } keys(%HoHcabinet) ){
+    my $cabid = $cab =~ tr/-/_/r;
+    print "\tlogset:hasPart :$cabid ;\n";
+}
 print "\t.\n";
 print "\n";
 

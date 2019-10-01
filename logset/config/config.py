@@ -40,6 +40,7 @@ settings: t.Dict[str,t.Any] = {}
 for _path in (os.path.join(etc, "defaults.toml"),
               os.path.join(os.getenv('HOME') or '', ".logs.toml"),
               "logs.toml" ):
+   # TODO toml.load accepts a list of paths, which might remove the need for deepmerge
    if os.path.exists(_path):
         with open(_path) as f:
             deepmerge.always_merger.merge(settings, toml.load(f)) 
@@ -84,5 +85,21 @@ def apply_global_config():
     logging.getLogger().setLevel(_verbosity_levels[settings['verbosity']])
     #logging.basicConfig(level=_verbosity_levels[settings['verbosity']], format='%(message)s')
     #print("trying to apply logging level")
+
+def read_local_config() -> t.Dict:
+    """ read the settings in ./logs.toml into a dict """
+    if os.path.exists('logs.toml'):
+        with open('logs.toml') as f:
+            d = toml.load(f)
+    else:
+        d = {}
+    return d
+
+# TODO might need some command to bind a prefix to a url, which then calls this 
+# to save the preferred binding in the logs.toml
+def write_local_config(d: t.Dict):
+    s = toml.dumps(d)
+    with open('logs.toml'):
+        f.write(s)
 
 apply_global_config()

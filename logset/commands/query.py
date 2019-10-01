@@ -20,10 +20,11 @@ from .. import queries
 
 def run(params: t.Dict[str,str]):
 
-    # copy the graph to an in-memory one for faster querying:
-    gfile = graph.LogSetGraph()
-    gmem = graph.LogSetGraph(persistence='Memory')
-    gmem.addN(gfile.quads())
+    gmem = graph.LogSetGraph(persistence='Memory', source=graph.LogSetGraph())
+    ## copy the graph to an in-memory one for faster querying:
+    #gfile = graph.LogSetGraph()
+    #gmem = graph.LogSetGraph(persistence='Memory')
+    #gmem.addN(gfile.quads())
 
     logger.debug(params)
     if params['sparql']:

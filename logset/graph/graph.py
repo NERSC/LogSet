@@ -31,13 +31,14 @@ graph_classes: t.Dict[str,t.Type['LogSetGraphBase']] = {}
 def LogSetGraph(persistence: str='', # type of local persistence (store) to use
                 path: str='',        # local place to persist to ('' is default)
                 create: bool=True,   # create local persistence if necessary?
-                clobber: bool=False  # overwrite/replace whatever is at path?
+                clobber: bool=False, # overwrite/replace whatever is at path?
+                **kwargs
     ) -> 'LogSetGraphBase':
     persistence=persistence or config.settings['persistence']['persistence']
     path=path or config.settings['persistence']['name']
     T = graph_classes[persistence]
     logger.info(f"instantiating a {T.__name__} with {persistence}, {path}, {create}, {clobber}")
-    return T(persistence=persistence, path=path, create=create, clobber=clobber)
+    return T(persistence=persistence, path=path, create=create, clobber=clobber, **kwargs)
 
 import rdflib
 import urllib.error
@@ -280,6 +281,10 @@ graph_classes['SQLite3'] = LogSetGraphInSQL
 class LogSetGraphInMemory(LogSetGraphBase):
     def __init__(self, **kwargs):
         super().__init__(store='default', **kwargs)
+
+        if 'source' in kwargs:
+            # source should be another graph, copy it to this in-memory one:
+            self.addN(kwargs['source'].quads())
 
 graph_classes['Memory'] = LogSetGraphInMemory
 

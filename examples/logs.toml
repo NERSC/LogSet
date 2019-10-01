@@ -6,4 +6,5 @@ title = "my example added settings for LogSet tools"
 [bindings]
     cray = "https://portal.nersc.gov/project/m888/resilience/datasets/cray-dict#"
     mutrino = "https://portal.nersc.gov/project/m888/resilience/datasets/mutrino-arch#"
+    edison = "https://portal.nersc.gov/project/m888/resilience/datasets/edison-arch#"
 
