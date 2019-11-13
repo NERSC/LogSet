@@ -31,6 +31,7 @@ class NotFound(Exception):
     def __init__(self, query_fn: str, on: str=""):
         self.message = f"{query_fn}{' on ' if on else ''}{on} found no matches"
 
+#def _runquery(g: graph.LogSetGraphBase, sparql: str) -> 
 
 def arch_component(g: graph.LogSetGraphBase, label: str, within: str="") -> Qname:
     """ given a component label (and optional prefix for the system of interest), find the 
@@ -114,9 +115,61 @@ def arch_coparts(g: graph.LogSetGraphBase, subject: Qname, parent_type: Qname,
     sparql = f""" 
         SELECT ?thing {t1} WHERE {{
           ?parent a {parent_type} .
-          ?parent logset:hasPart* {subject} .
-          ?parent logset:hasPart* ?thing .
+          ?parent logset:hasPart+ {subject} .
+          ?parent logset:hasPart+ ?thing .
           ?thing a {t2} .
+        }}
+    """
+    logger.debug(f"running query: {sparql}")
+    with g:
+        result = g.query(sparql, initNs=dict(g.namespaces()))
+        for row in result:
+            yield tuple(g.qname(i) for i in row)
+
+def arch_affectors(g: graph.LogSetGraphBase, subjects: t.Sequence[str]) -> t.Generator[t.Tuple[Qname, Qname, str], None, None]:
+    """ given a subject (eg a component), return the things that might affect it """
+    # it turns out sparql doesn't support "traverse predicates that are reachable from 
+    # this predicate (such as logset:affects or logset:hasPart or ..) .. for workaround,
+    # put them into an "or" clause:
+    sparql = "SELECT ?rel WHERE { ?rel rdfs:subPropertyOf* logset:affects . }"
+    with g:
+        result = g.query(sparql, initNs=dict(g.namespaces()))
+        clause = '|'.join(g.qname(r[0]) for r in result)
+
+    logger.debug(subjects)
+    if len(subjects)>1:
+        subj = "?subj .\n"
+        subj += "?subj rdfs:label ?label .\n"
+        labels = ','.join(f"\"{s}\"" for s in subjects)
+        subj += f"FILTER (?label in ({labels}))"
+    else:
+        subj = f"{subjects[0]}"
+
+    sparql = f"""
+        SELECT ?thing ?type ?tlabel WHERE {{
+            ?thing a ?type .
+            ?thing rdfs:label ?tlabel .
+            ?thing ({clause})+ {subj} .
+        }}
+    """
+    logger.debug(f"running query: {sparql}")
+    with g:
+        result = g.query(sparql, initNs=dict(g.namespaces()))
+        for row in result:
+            #yield tuple(g.qname(i) for i in row)
+            yield row 
+
+def arch_affectees(g: graph.LogSetGraphBase, subject: Qname) -> t.Generator[t.Tuple[Qname, Qname], None, None]:
+    """ given a subject (eg a component), return the things that it might affect """
+    sparql = "SELECT ?rel WHERE { ?rel rdfs:subPropertyOf* logset:affects . }"
+    with g:
+        result = g.query(sparql, initNs=dict(g.namespaces()))
+        clause = '|'.join(r[0] for r in result)
+
+    sparql = f"""
+        SELECT ?thing ?type WHERE {{
+            ?thing a ?type .
+            {subject} ({clause})+ ?thing .
         }}
     """
     logger.debug(f"running query: {sparql}")
