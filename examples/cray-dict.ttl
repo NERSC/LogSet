@@ -40,6 +40,21 @@
     rdfs:comment "The high-radix tile-based router used by Cray Aries" ;
     .
 
+:Gemini
+    a owl:Class ;
+    rdfs:subClassOf ddict:HSN ;
+    rdfs:label "gemini" ;
+    rdfs:comment "Cray Gemini high-speed network" ;
+    .
+
+:GeminiRouter
+    a owl:Class ;
+    rdfs:subClassOf ddict:Switch ;
+    rdfs:label "gemini router" ;
+    skos:altLabel "router" ;
+    rdfs:comment "The high-radix tile-based router used by Cray Gemini" ;
+    .
+
 # This will be unused
 :AriesRouterTile
     a owl:Class ;
