@@ -112,6 +112,37 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
     def __exit__(self, exc_type, exc_value, traceback):
         self.commit()
 
+    def qname(self, uri:t.Union[str,rdflib.term.Literal]) -> str:
+        """ fix flaky qname calculation """
+        if isinstance(uri, rdflib.term.URIRef) and '#' in uri:
+            try:
+                r = self.namespace_manager.qname(uri)
+                return r
+            except:
+                return f'<{uri}>'
+        elif isinstance(uri, rdflib.term.URIRef):
+                return f'<{uri}>'
+        elif isinstance(uri, rdflib.term.Literal):
+            #print(f'"{uri}"')
+            return f'"{uri}"'
+        elif isinstance(uri, rdflib.term.BNode):
+            return f'(blank_node {uri})'
+
+#        try:
+#            print(f"getting qname from {uri} ({uri.__class__.__name__})")
+#            r = self.namespace_manager.qname(uri)
+#            print(f"default method got {r}")
+#            return r
+#        except:
+#            if isinstance(uri, rdflib.term.Literal):
+#                return f'"{uri}"'
+#            elif isinstance(uri, rdflib.term.BNode):
+#                return f'(blank_node {uri})'
+#            elif isinstance(uri, rdflib.term.URIRef):
+#                return f'<{uri}>'
+#            else:
+#                raise
+
     def construct(self):
         """ idempotent method that ensures base graph is ready to use """
         if len(self)!=0:
@@ -154,6 +185,7 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         # parsed to see eg what the thing describes itself as, what it considers
         # to be its uri/namespace, and to add an assetdestribution to the default
         # context to record where it got this one from
+        logger.info(f"called extend with {str(urls)}")
         todo: t.Set[str] = set(url for url in urls)
         done: t.Set[str] = set(str(n[1]) for n in self.namespaces())
         while todo:
@@ -164,12 +196,14 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             todo.clear()
 
             # next we add new urls from what we've parsed already to the todo list:
-            if spider:
+            #if spider:
+            if True:
                 new_urls = (str(t['uri']) for t in self.query(self._spiderquery))
                 todo.update(u for u in new_urls if u not in done)
 
             new_urls = (str(t['uri']) for t in self.query(self._logsetsquery))
             todo.update(u for u in new_urls if u not in done)
+            logger.info("found new urls to parse:\n" + '\n'.join(u for u in todo)) 
 
             # other namespaces files used in the ones we just parsed
             # (but not the dummy '' prefix!)
@@ -195,9 +229,11 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
         logger.info(f"\ntrying to parse {uri} with format {fmt}")
         try:
             g.parse(uri, format=fmt)
-        except notation3.BadSyntax as e:
-            logger.critical(f"Syntax error in {uri}: {e}")
-            sys.exit(1)
+        except (FileNotFoundError, urllib.error.HTTPError):
+            uri = f"{uri.rstrip('#')}.ttl"
+            fmt = rdflib.util.guess_format(uri)
+            logger.info(f"trying again with {uri}")
+            g.parse(uri, format=fmt)
         except:
             raise
 
@@ -213,10 +249,15 @@ class LogSetGraphBase(rdflib.ConjunctiveGraph):
             g = self._collect(url)
         except GraphExistsError:
             pass
-        except (FileNotFoundError, urllib.error.HTTPError):
-            url = f"{url.rstrip('#')}.ttl"
-            logger.info(f"trying again with {url}")
-            g = self._collect(url)
+        except notation3.BadSyntax as e:
+            logger.critical(f"Syntax error in {url}: {e}")
+            sys.exit(1)
+        #except urllib.error.HTTPError as e:
+        #    logger.warning(f"could not locate {uri}, skipping")
+        #except (FileNotFoundError, urllib.error.HTTPError):
+        #    url = f"{url.rstrip('#')}.ttl"
+        #    logger.info(f"trying again with {url}")
+        #    g = self._collect(url)
 
         # TODO pull out the triples with blank nodes, because we will need to replace the 
         # blank nodes with blank nodes from self, to avoid collisions

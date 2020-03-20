@@ -26,14 +26,29 @@ def run(params: t.Dict[str,str]):
     #gmem = graph.LogSetGraph(persistence='Memory')
     #gmem.addN(gfile.quads())
 
+    readable = lambda d: '\n'.join(str(i) for i in d.items()) 
+
     logger.debug(params)
     if params['sparql']:
         logger.info("got sparql query:")
-        logger.info(params['sparql'])
+        logger.info(params['sparql'][0])
 #        with graph.LogSetGraph() as g:
         with gmem as g:
-            for row in g.query(params['sparql'][0]):
-                print([g.qname(term) for term in row if term])
+            nsdict = {p:ns for p,ns in g.namespace_manager.namespaces()}
+            #print(f"querying with ns manager {g.namespace_manager}")
+            #print(f"with namespaces {readable(nsdict)}")
+            for row in g.query(params['sparql'][0], initNs=nsdict):
+                try: 
+                    print([g.qname(term) for term in row if term])
+                    #print([term for term in row if term])
+                except:
+                    #print(f"ERROR printing {row}")
+                    for t in row:
+                        try:
+                            print(g.qname(t))
+                        except:
+                            logger.warning(f"Error finding qname in {t}")
+                    raise
     elif params['containers']:
         #for type_, parent, thing in queries.arch_parents(graph.LogSetGraph(), params['subject']):
         for type_, parent, thing in queries.arch_parents(gmem, params['subject']):

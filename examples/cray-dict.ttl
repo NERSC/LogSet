@@ -7,12 +7,14 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 # namespaces for base dictionaries:
-@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+#@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/>
 @prefix logset: <logset#> .
 @prefix ddict: <ddict#> .
 
 # declare myself and set a prefix:
-@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+#@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/example/cray/>
 @prefix : <cray-dict#> .
 
 :
@@ -25,6 +27,25 @@
     .
 
 # some Cray-specific Subject types:
+:XC30
+    a owl:Class ;
+    rdfs:subClassOf ddict:Cluster ;
+    rdfs:label "xc30" ;
+    rdfs:comment "Cray XC30 Aries-based supercomputer"
+
+:XC40
+    a owl:Class ;
+    rdfs:subClassOf ddict:Cluster ;
+    rdfs:label "xc40" ;
+    rdfs:comment "Cray XC40 Aries-based supercomputer"
+
+:XE6
+    a owl:Class ;
+    rdfs:subClassOf ddict:Cluster ;
+    rdfs:label "xe6" ;
+    rdfs:comment "Cray XE6 Gemini-based supercomputer"
+
+
 :Aries
     a owl:Class ;
     rdfs:subClassOf ddict:HSN ;
@@ -135,86 +156,96 @@
     .
 
 
-#:aries_status_snapshots a logset:infoType .
-#
-#
-#:console_logfile
-#    a logset:LogSeries ;
-#    rdfs:comment ''' a console logfile is timestamped-line-per-entry, generally
-#                     named like "console-20170131" and looks like:
-#  2017-09-06T15:20:21.827169-07:00 corismw1 craylog: message type: console, connected to port: 5150
-#  2017-09-06T15:20:21.827236-07:00 corismw1 craylog: testing connectivity
-#  2017-09-06T15:20:22.075706-07:00 corismw1 starting
-#  2017-09-06T15:22:42.809249-07:00 c2-0c0s0n1 Wait4Boot: Blade Controller Boot Protocol version - 1
-#  2017-09-06T15:22:42.809276-07:00 c2-0c0s0n1 Wait4Boot: EXIT ---> PXE Boot
-#                 ''' ;
-#    logset:infoType ddict:log_messages ;
-#    logset:subjectType ddict:cluster ;
-#    logset:logFormatType ddict:timeStampedLogFile ;
-#    logset:logFormatInfo "filepattern=console-<date:YYYYMMDD>$" ;
-#    logset:logFormatInfo "filepattern=console$" ;
-#    logset:logFormatInfo "ts_words=0" ;
-#    logset:logFormatInfo "part_word=1" ;
-#    .
-#
-#:messages_logfile
-#    a logset:LogSeries ;
-#    rdfs:comment ''' the messages_logfile collects /var/log/messages from all
-#                     of the nodes in the cluster, and looks like:
-#  <30>1 2017-09-06T15:26:39.977558-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'mlx4_en'
-#  <30>1 2017-09-06T15:26:39.977586-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'scsi_dh_alua'
-#  <30>1 2017-09-06T15:26:39.977591-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'scsi_dh_emc'
-#  <30>1 2017-09-06T15:26:39.977593-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'dm_multipath'
-#  <27>1 2017-09-06T15:26:39.977596-07:00 c0-0c0s0n1 systemd-sysctl 5920 p0-20170906t151820 -  Failed to open file '/boot/sysctl.conf-4.4.49-92.11.1_3.0-cray_ari_s', ignoring: No such file or directory
-#  <30>1 2017-09-06T15:26:39.977610-07:00 c0-0c0s0n1 systemd-sysusers 5936 p0-20170906t151820 -  Creating group adm with gid 477.
-#  <30>1 2017-09-06T15:26:39.977617-07:00 c0-0c0s0n1 systemd 1 p0-20170906t151820 -  Started Rebuild Dynamic Linker Cache.
-#                 ''' ;
-#    logset:infoType ddict:log_messages ;
-#    logset:subjectType ddict:cluster ;
-#    logset:logFormatType ddict:timeStampedLogFile ;
-#    logset:logFormatInfo "filepattern=messages-<date:YYYYMMDD>$" ;
-#    logset:logFormatInfo "filepattern=messages$" ;
-#    logset:logFormatInfo "ts_words=1" ;
-#    logset:logFormatInfo "part_word=2" ;
-#    .
-#
-#:consumer_logfile
-#    a logset:LogSeries ;
-#    rdfs:comment ''' the consumer_logfile collects messages from all nodes in
-#                     a multiline format that looks like:
-#  Wed Sep  6 15:23:43 2017 - rs_event_t at 0xc01070
-#  ev_id = 0x080040ed (ec_l1_failed)
-#  ev_src = ::c4-3
-#  ev_gen = ::c0-0c0s0n0
-#  ev_flag = 0x00000002 ev_priority = 0 ev_len = 144 ev_seqnum = 0x00000000
-#  ev_stp = 59b0756f.000eeaf9 [Wed Sep  6 15:23:43 2017]
-#  svcid 0: ::c4-3 = svid_inst=0x0/svid_type=0x0/svid_node=c4-3[rsn_node=0x0/rsn_type=0x6/rsn_state=0x6], err code 131124 - Cabinet Sensor Check Warning
-#  ev_data...
-#  00000000: 01 00 00 00 00 00 00 00 00 00 00 00 0c 06 00 00 *................*
-#  00000010: 10 30 00 00 00 00 00 00 01 00 00 00 34 00 02 00 *.0..........4...*
-#                 ''' ;
-#    logset:infoType ddict:log_messages ;
-#    logset:subjectType ddict:cluster ;
-#    logset:logFormatType ddict:unstructuredTextFile ; # actually it has structure, but too complex initially
-#    logset:logFormatInfo "filepattern=consumer-<date:YYYYMMDD>$" ;
-#    logset:logFormatInfo "filepattern=consumer$" ;
-#    .
-
-#:aries_lcb_status
-#    a logset:LogSeries ;
-#    logset:infoType :aries_status_snapshots ;
-#    logset:subjectType ddict:aries ;
-#    logset:logFormatType ddict:filePerTimepoint ;
-#    logset:logFormatInfo "filepattern=<label:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
-#    #logset:logFormatInfo "mediatype=application/x-xz"
-#    # will need a specific handler I think, eg:
-#    #logset:logFormatInfo "handler=AriesLcbStatusHandler"
-#    .
+:aries_status_snapshots a skos:Concept .
 
 
+:console_logfile
+    a logset:LogSeries ;
+    rdfs:comment """ a console logfile is timestamped-line-per-entry, generally
+                     named like "console-20170131" and looks like:
+  2017-09-06T15:20:21.827169-07:00 corismw1 craylog: message type: console, connected to port: 5150
+  2017-09-06T15:20:21.827236-07:00 corismw1 craylog: testing connectivity
+  2017-09-06T15:20:22.075706-07:00 corismw1 starting
+  2017-09-06T15:22:42.809249-07:00 c2-0c0s0n1 Wait4Boot: Blade Controller Boot Protocol version - 1
+  2017-09-06T15:22:42.809276-07:00 c2-0c0s0n1 Wait4Boot: EXIT ---> PXE Boot
+                 """ ;
+    logset:infoType ddict:log_messages ;
+    logset:subject ddict:Cluster ;
+    logset:logFormatType ddict:timeStampedLogFile ;
+    logset:logFormatInfo "filepattern=console-<date:YYYYMMDD>$" ;
+    logset:logFormatInfo "filepattern=console$" ;
+    logset:logFormatInfo "ts_words=0" ;
+    logset:logFormatInfo "part_word=1" ;
+    .
 
+:messages_logfile
+    a logset:LogSeries ;
+    rdfs:comment """ the messages_logfile collects /var/log/messages from all
+                     of the nodes in the cluster, and looks like:
+  <30>1 2017-09-06T15:26:39.977558-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'mlx4_en'
+  <30>1 2017-09-06T15:26:39.977586-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'scsi_dh_alua'
+  <30>1 2017-09-06T15:26:39.977591-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'scsi_dh_emc'
+  <30>1 2017-09-06T15:26:39.977593-07:00 c0-0c0s0n1 systemd-modules-load 5894 p0-20170906t151820 -  Inserted module 'dm_multipath'
+  <27>1 2017-09-06T15:26:39.977596-07:00 c0-0c0s0n1 systemd-sysctl 5920 p0-20170906t151820 -  Failed to open file '/boot/sysctl.conf-4.4.49-92.11.1_3.0-cray_ari_s', ignoring: No such file or directory
+  <30>1 2017-09-06T15:26:39.977610-07:00 c0-0c0s0n1 systemd-sysusers 5936 p0-20170906t151820 -  Creating group adm with gid 477.
+  <30>1 2017-09-06T15:26:39.977617-07:00 c0-0c0s0n1 systemd 1 p0-20170906t151820 -  Started Rebuild Dynamic Linker Cache.
+                 """ ;
+    logset:infoType ddict:log_messages ;
+    logset:subject ddict:Cluster ;
+    logset:logFormatType ddict:timeStampedLogFile ;
+    logset:logFormatInfo "filepattern=messages-<date:YYYYMMDD>$" ;
+    logset:logFormatInfo "filepattern=messages$" ;
+    logset:logFormatInfo "ts_words=1" ;
+    logset:logFormatInfo "part_word=2" ;
+    .
 
+:consumer_logfile
+    a logset:LogSeries ;
+    rdfs:comment """ the consumer_logfile collects messages from all nodes in
+                     a multiline format that looks like:
+  Wed Sep  6 15:23:43 2017 - rs_event_t at 0xc01070
+  ev_id = 0x080040ed (ec_l1_failed)
+  ev_src = ::c4-3
+  ev_gen = ::c0-0c0s0n0
+  ev_flag = 0x00000002 ev_priority = 0 ev_len = 144 ev_seqnum = 0x00000000
+  ev_stp = 59b0756f.000eeaf9 [Wed Sep  6 15:23:43 2017]
+  svcid 0: ::c4-3 = svid_inst=0x0/svid_type=0x0/svid_node=c4-3[rsn_node=0x0/rsn_type=0x6/rsn_state=0x6], err code 131124 - Cabinet Sensor Check Warning
+  ev_data...
+  00000000: 01 00 00 00 00 00 00 00 00 00 00 00 0c 06 00 00 *................*
+  00000010: 10 30 00 00 00 00 00 00 01 00 00 00 34 00 02 00 *.0..........4...*
+                 """ ;
+    logset:infoType ddict:log_messages ;
+    logset:subject ddict:Cluster ;
+    logset:logFormatType ddict:unstructuredTextFile ; # actually it has structure, but too complex initially
+    logset:logFormatInfo "filepattern=consumer-<date:YYYYMMDD>$" ;
+    logset:logFormatInfo "filepattern=consumer$" ;
+    .
 
+:aries_lcb_status
+    a logset:LogSeries ;
+    logset:infoType :aries_status_snapshots ;
+    logset:subject :Aries ;
+    logset:logFormatType ddict:filePerTimepoint ;
+    logset:logFormatInfo "filepattern=<label:>_aries_lcb_status.<time:YYYYMMDDHHmmss>.xz$" ;
+    #logset:logFormatInfo "mediatype=application/x-xz"
+    # will need a specific handler I think, eg:
+    #logset:logFormatInfo "handler=AriesLcbStatusHandler"
+    .
 
+:bm_logfile
+    a logset:LogSeries ;
+    rdfs:comment """ looks like:
+  <158>1 2015-02-17T08:03:54.188307-06:00 mutrino bootmanager 7133 - [hss_bm@34] Accepting a halt request
+  <158>1 2015-02-17T08:04:41.744222-06:00 mutrino bootmanager 7133 - [hss_bm@34] Accepting a halt request
+  <158>1 2015-02-17T08:17:44.820232-06:00 mutrino bootmanager 7133 - [hss_bm@34] Accepting a BOOT_BN_ONLY boot request
+  <158>1 2015-02-17T08:17:44.820713-06:00 mutrino bootmanager 7133 - [hss_bm@34] Boot Sessionid: p0-20150217t080709
+    """ ;
+    logset:subject ddict:Cluster ;
+    logset:logFormatType ddict:timeStampedLogFile ;
 
+:some_logfile
+    a logset:LogSeries ;
+    rdfs:comment " placeholder " ;
+    logset:subject ddict:Cluster ;
+    .
 

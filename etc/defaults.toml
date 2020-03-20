@@ -28,3 +28,4 @@ verbosity = "warning"
     # additional preferred bindings
     logset = "https://portal.nersc.gov/project/m888/resilience/datasets/logset#"
     ddict = "https://portal.nersc.gov/project/m888/resilience/datasets/ddict#"
+    patterns = "https://portal.nersc.gov/project/m888/resilience/datasets/patterns#"

@@ -1,6 +1,6 @@
 # An ontology for metadata describing log-like information about HPC systems,
 # intended to support analysis of faults and failures.
-#
+
 # a client should be able to query a graph of logset objects to find, eg
 # logfiles and job records etc about a specific job. or affected by a
 # specific component failure
@@ -33,13 +33,14 @@
 # so there is not a single definition for each term 
 
 # declare myself and set a prefix:
-@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+#@base <https://portal.nersc.gov/project/m888/resilience/datasets/> .
+@base <http://portal.nersc.gov/project/mpccc/sleak/resilience/datasets/> .
 @prefix : <logset#> .
 :
     a owl:Ontology ;
     dct:title "the LogSet vocabulary" ;
     rdfs:label "logset" ;
-    owl:versionIRI <v0.3> ;
+    owl:versionIRI <v0.4> ;
     .
 
 
@@ -55,61 +56,6 @@
     .
 
 
-:Pattern
-    a owl:Class ;
-    rdfs:comment """ Frequently specific subjects in a log or filenames relevant to a
-                     LogSeries are identified via regex (eg a reference to
-                     edison:nid00123 looks like 'nid00123', and a file called
-                     'messages-20170129' is probably a messages logfile for Jan 29,
-                     2017. Getting a correct regex for each thing is tedious and
-                     unreliable, so we build a database of regexes with human-readable
-                     tags.
-                 """ ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :tag ;
-        owl:cardinality 1 ;
-    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :regex ;
-        owl:cardinality 1 ;
-    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty :inUri ;
-        owl:cardinality 1 ;
-    ] ;
-    .
-
-:tag
-    a owl:DatatypeProperty ;
-    rdfs:domain :Pattern ;
-    rdfs:range rdfs:Literal ;
-    rdfs:comment """ a string that can appear in an identifyingPattern eg
-                       <date:YYYYMM>
-                 """ ;
-    .
-
-:regex
-    a owl:DatatypeProperty ;
-    rdfs:domain :Pattern ;
-    rdfs:range rdfs:Literal ;
-    rdfs:comment """ A regex in Python syntax, eg
-                       (?P<date>(?P<year>20[0-9]{2})(?P<month>0[1-9]|1[0-2])
-                 """ ;
-    .
-
-:inUri
-    a owl:DatatypeProperty ;
-    rdfs:domain :Pattern ;
-    rdfs:range rdfs:Literal ;
-    rdfs:comment """ How the match can be used in the URI/name of a thing eg
-                       <year><month>
-                 """ ;
-    .
-
-
 # the classes in our vocabulary:
 :Subject
     a owl:Class ;
@@ -122,15 +68,9 @@
                          dct:description ;
     .
 
-:identifyingPattern
+:isKnownAs
     a owl:DatatypeProperty ;
-    rdfs:comment """ a string which includes known Pattern tags eg
-                       console-<date:YYYYMMDD>
-                     that can be mapped to a regex via a :Pattern, which can then be
-                     used to match eg filenames, or log lines, relevant to a Subject
-                     or LogSeries
-                 """ ;
-    #rdfs:domain owl:unionOf (:Subject, :LogSeries) ;
+    rdfs:comment " a string-literal alias for a thing " ;
     rdfs:domain :Subject ;
     rdfs:range rdfs:Literal ;
     .
@@ -148,17 +88,47 @@
 
 
 :hasPart
-    a owl:ObjectProperty ;
-    rdfs:subPropertyOf :affects ;
-    rdfs:comment """ For Subjects which really do form a strict hierarchy. Failure of
-                     a Subject implies failure of its parts too, though the reverse
-                     is not necessarily true, thus 'hasPart' (the state of the whole
-                     propagates to its parts) rather than 'partOf'
+    a owl:FunctionalProperty ;
+    rdfs:comment """ For Subjects which really do form a strict hierarchy. hasPart/partOf
+                     are not quite subclasses of :affects 
                  """ ;
     rdfs:domain :Subject ;
     rdfs:range :Subject ;
     .
 
+
+# === not sure about: 
+
+:identifyingPattern
+    a owl:DatatypeProperty ;
+    rdfs:comment """ a string which includes known Pattern tags eg
+                       console-<date:YYYYMMDD>
+                     that can be mapped to a regex via a :Pattern, which can then be
+                     used to match eg filenames, or log lines, relevant to a Subject
+                     or LogSeries
+                 """ ;
+    #rdfs:domain owl:unionOf (:Subject, :LogSeries) ;
+    rdfs:domain :Subject ;
+    rdfs:range rdfs:Literal ;
+    .
+
+
+# rdflib doesn't actually do owl reasoning, so a naive query won't infer partOf from
+# hasPart or vice versa .. would need to carefully query both directions
+:partOf
+    a owl:InverseFunctionalProperty ;
+    owl:inverseOf :hasPart ;
+    .
+
+:relevantLogSeries
+    a owl:ObjectProperty ;
+    rdfs:comment """ to help in locating/defining subjects for logs, having a list of known
+                     LogSeries that are relevant to a subject might help guide the cataloger
+                     to list subjects sensibly
+                 """;
+    rdfs:domain :Subject ;
+    rdfs:range :LogSeries ;
+    .
 
 :Link
     a owl:Class ;
@@ -182,4 +152,186 @@
     rdfs:domain :Subject ;
     rdfs:range :Link ;
     .
+
+:LogSet
+    a owl:Class ;
+    rdfs:subClassOf dcat:Catalog ;
+    rdfs:comment """ A LogSet is a collection of related logs (eg, the logs
+                     from a Cray boot session on NERSC Cori - related in system
+                     and access and timespan)
+                     It is recommended but not enforced that a LogSet instance
+                     should have certain properties describing its provenance:
+                     # dct:title         a rdfs:Literal
+                     # dct:description   a rdfs:Literal
+                     # dct:publisher     a foaf:Organization
+                     # dcat:contactPoint a vcard:Kind
+                     (publisher and contactPoint are especially useful when the
+                     actual log data is not directly accessible to people or
+                     tools using the metadata, so that having identified that
+                     data exists, they can contact someone to request access).
+                     The actual files (or db queries etc) of the logs are
+                     described as a :ConcreteLog, based on dcat:Distribution.
+                     A LogSet is expected to be defined in its own index file
+                     and included in a dcat:Catalog
+                 """ ;
+    :recommendedProperty dct:title,
+                         dct:description ;
+    .
+
+:LogSeries
+    a owl:Class;
+    rdfs:subClassOf dct:Standard ;
+    rdfs:comment """ A 'type' of logfile, eg a console or outage log. Might be
+                     specific to a type of system, or OS version, but common to
+                     systems of that type (eg Cray with CNL6). Can be used by
+                     tools to indicate how to handle a log. Must have a property
+                     indicating the 'canonical' format that tools can assume on.
+                     Note: we may need to add an 'equivalentTo' property for
+                     LogSeries that can be in multiple places and formats, eg a
+                     text log on a server and an index in an ElasticSearch db.
+                     A LogSeries is expected to be defined in a data dictionary
+                 """ ;
+    :recommendedProperty :infoType,
+                         :logFormatType ;
+    .
+
+:ConcreteLog
+    a owl:Class ;
+    rdfs:label "ConcreteLog" ;
+    rdfs:subClassOf dcat:Distribution ;
+    :recommendedProperty :isInstanceOf,
+                         dct:temporal,
+                         dcat:byteSize,
+                         :subject;
+    .
+
+:LogFormatType
+    a owl:Class ;
+    rdfs:comment """ An entity representing how log data is organized, in order
+                     to help tools decide how to handle a given log.
+                     For example, most logs are timestamped-line-per-entry but
+                     some are a timestamped multiline block, others have a file
+                     per timestamp and contain a table, others hove no obvious
+                     structure at all.
+                     It is likely valuable for a LogFormatType to include a
+                     dcat:mediaType property, eg 'text/plain'
+                     A LogFormatType is expected to be defined in a data
+                     dictionary and to correspond to a handler class for logs in
+                     that format
+                 """ ;
+    :recommendedProperty :dataSource,
+                         dcat:mediaType ;
+    .
+
+# FIXME should probably use dct:accrualPeriodicity for this (a dct:Frequency)
+# annoyingly, there doesn't seem to be any good definition of that, I've seen an
+# example using <http://purl.org/cld/freq/daily>, but that seems to be a broken
+# link. But, eg <http://purl.org/never> might be a good way to indicate closed
+:isClosed
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment """ boolean value indicating that no new entries are arriving
+                     in this logset (as compared to a "living" data source
+                     with entries being added over time)
+                 """ ;
+    rdfs:domain :LogSet ;
+    rdfs:range xsd:boolean ; # can be 'true' or 'false'. No value means 'false'
+    .
+
+:subject
+    a owl:ObjectProperty ;
+    rdfs:comment """ The entity whose state this LogSet or ConcreteLog describes.
+                     (eg a console-log might be for nersc:edison)
+                 """ ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range :Subject ;
+    .
+
+:isViewOf
+    a owl:ObjectProperty ;
+    rdfs:comment """ for metadata collections such as annotations on a logset,
+                     the LogSet(s) this collection reflects
+                 """ ;
+    rdfs:domain :LogSet ;
+    rdfs:range :LogSet ;
+    .
+
+# make dct:temporal amenable to sparql queries, following the pattern used by
+# DDI Alliance and OpenGeoSpatial.org of defining startDate and endDate properties
+# for a dct:PeriodOfTime, and in indexes and queries use a nested blank node for
+# the dct:PeriodOfTime itself.
+# Note that for sparql queries to work, the dates *must* be include a timezone
+# and be marked as ^^xsd:dateTime, both in the index and in the query (or they
+# get compared as literals). The time part (eg T12:00:00) is optional
+# note: DCAT2 has formalized this, now it is part of that vocab
+:startDate
+    a owl:DatatypeProperty ;
+    rdfs:domain dct:PeriodOfTime ;
+    rdfs:range xsd:dateTime ;
+    .
+
+:endDate
+    a owl:DatatypeProperty ;
+    rdfs:domain dct:PeriodOfTime;
+    rdfs:range xsd:dateTime ;
+    .
+
+:recordCount
+    a owl:DatatypeProperty ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range xsd:integer ;
+    .
+
+:estRecordCount
+    a owl:DatatypeProperty ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range xsd:integer ;
+    rdfs:comment """ an estimate of the number of records in a ConcreteLog,
+                     if that is guessable/appropriate
+                 """ ;
+    .
+
+:estRecordsPerDay
+    a owl:DatatypeProperty ;
+    rdfs:domain :ConcreteLog ;
+    rdfs:range xsd:integer ;
+    rdfs:comment """ for open-ended ConcreteLogs, an estimate of the number of
+                     records that get added per day
+                 """ ;
+    .
+
+:logFormatType
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment """ the LogFormatType for this LogSeries
+                 """ ;
+    rdfs:domain :LogSeries ;
+    rdfs:range :LogFormatType ;
+    .
+
+## FIXME not sure about this
+#:dataSource
+#    a owl:ObjectProperty, owl:FunctionalProperty ;
+#    rdfs:comment """ the DataSource for this LogFormatType
+#                 """ ;
+#    rdfs:domain :LogFormatType ;
+#    rdfs:range dcat:DataService ;
+#    .
+
+:infoType
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:comment """ what sort of thing does this LogSeries describe? 
+                     eg ddict:job_records, or ddict:log_messages
+                 """ ;
+    rdfs:domain :LogSeries ;
+    rdfs:range skos:Concept ;
+    .
+
+
+
+
+
+
+
+
+
+
 
